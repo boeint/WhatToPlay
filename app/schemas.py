@@ -3,7 +3,25 @@
 These are separate from the database tables in app/models.py: the API decides
 what to expose, independently of how data is stored.
 """
+import calendar
+from datetime import date
+
 from pydantic import BaseModel, ConfigDict
+
+from app import backloggd
+from app.models import Franchise, Game, Status
+
+
+def format_release(year: int | None, month: int | None, note: str | None) -> str:
+    """Display label for a release date: "Aug 2007", "1998", "2025 (Early Access)", "TBA"."""
+    parts = []
+    if month and year:
+        parts.append(f"{calendar.month_abbr[month]} {year}")
+    elif year:
+        parts.append(str(year))
+    if note:
+        parts.append(f"({note})" if parts else note)
+    return " ".join(parts)
 
 
 class PlatformOut(BaseModel):
@@ -11,3 +29,61 @@ class PlatformOut(BaseModel):
 
     id: int
     name: str
+
+
+class LinkOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    label: str
+    url: str
+
+
+class GameOut(BaseModel):
+    id: int
+    title: str
+    release_year: int | None
+    release_month: int | None
+    release_note: str | None
+    released: str                  # read-only display label, built from the three fields above
+    status: Status
+    finished_on: date | None
+    notes: str
+    platforms: list[str]           # platform names, in the game's order
+    links: list[LinkOut]
+    backloggd_url: str | None      # manual override, or None
+    backloggd_link: str            # read-only: the page to open (override or generated)
+
+    @classmethod
+    def from_model(cls, game: Game) -> "GameOut":
+        return cls(
+            id=game.id,
+            title=game.title,
+            release_year=game.release_year,
+            release_month=game.release_month,
+            release_note=game.release_note,
+            released=format_release(game.release_year, game.release_month, game.release_note),
+            status=game.status,
+            finished_on=game.finished_on,
+            notes=game.notes,
+            platforms=[gp.platform.name for gp in game.platforms],
+            links=[LinkOut.model_validate(link) for link in game.links],
+            backloggd_url=game.backloggd_url,
+            backloggd_link=backloggd.link(game.title, game.backloggd_url),
+        )
+
+
+class FranchiseOut(BaseModel):
+    id: int
+    name: str
+    notes: str
+    games: list[GameOut]           # in play order
+
+    @classmethod
+    def from_model(cls, franchise: Franchise) -> "FranchiseOut":
+        return cls(
+            id=franchise.id,
+            name=franchise.name,
+            notes=franchise.notes,
+            games=[GameOut.from_model(g) for g in franchise.games],
+        )
