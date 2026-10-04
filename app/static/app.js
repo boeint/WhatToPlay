@@ -534,6 +534,10 @@ document.addEventListener("click", (event) => {
     const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
     if (action === "add-game") openNewGame(franchise);
     else deleteFranchise(franchise);
+  } else if (action === "settings") {
+    openSettings();
+  } else if (action === "reset-ai-instructions") {
+    $("ai-instructions").value = defaultAiInstructions;
   } else if (action === "restore-backup") {
     restoreBackup();
   } else if (action === "export") {
@@ -616,6 +620,44 @@ async function importData(file) {
     saveState("");
     showProblem(`Not imported, nothing was changed: ${err.message}`);
   }
+}
+
+// ---------- settings ----------
+let defaultAiInstructions = "";
+
+async function openSettings() {
+  let s;
+  try {
+    s = await api.settings();
+  } catch (err) {
+    return showProblem(`Could not load the settings: ${err.message}`);
+  }
+  defaultAiInstructions = s.default_ai_instructions;
+  await formDialog({
+    title: "Settings",
+    okLabel: "Save",
+    body: `<div class="settings-form">
+      <div class="field">
+        <label class="check"><input type="checkbox" name="ai_enabled" ${s.ai_enabled ? "checked" : ""}>
+          AI assistant</label>
+        <div class="hint">Lets Claude Code read your backlog and add games for you, through
+          <code>${esc(location.origin)}/mcp</code>. When off, that address refuses every request.</div>
+      </div>
+      <div class="field">
+        <div class="row"><label for="ai-instructions">AI instructions</label>
+          <button type="button" class="lnkbtn" data-action="reset-ai-instructions">Reset to default</button></div>
+        <textarea id="ai-instructions" name="ai_instructions">${esc(s.ai_instructions)}</textarea>
+        <div class="hint">Claude reads these before adding or changing anything.</div>
+      </div>
+    </div>`,
+    onSubmit: async (form) => {
+      await withIndicator(() => api.updateSettings({
+        ai_enabled: form.elements.ai_enabled.checked,
+        ai_instructions: form.elements.ai_instructions.value,
+      }));
+      toast("Settings saved");
+    },
+  });
 }
 
 // ---------- backups on the server: status line + restore ----------

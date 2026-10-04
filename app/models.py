@@ -124,6 +124,14 @@ class GamePlatform(Base):
     platform: Mapped[Platform] = relationship()
 
 
+class Setting(Base):
+    """App preferences edited in the Settings dialog, one row per setting (see app/settings.py)."""
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+
+
 class GameLink(Base):
     __tablename__ = "game_links"
 

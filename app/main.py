@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from app import backups
 from app.backups import backup_loop, backup_status
 from app.db import get_engine
-from app.routers import backup, franchises, games, platforms
+from app.routers import backup, franchises, games, platforms, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -37,6 +37,7 @@ app.include_router(franchises.router)
 app.include_router(games.router)
 app.include_router(backup.router)
 app.include_router(backups.router)
+app.include_router(settings.router)
 
 
 @app.get("/api/health", tags=["health"])

@@ -51,6 +51,8 @@ export const api = {
   setGameOrder: (franchiseId, gameIds) => request("PUT", `/api/franchises/${franchiseId}/game-order`, gameIds),
   setFranchiseOrder: (franchiseIds) => request("PUT", "/api/franchise-order", franchiseIds),
   importAll: (exportFile) => request("POST", "/api/import?replace=true", exportFile),
+  settings: () => request("GET", "/api/settings"),
+  updateSettings: (changes) => request("PATCH", "/api/settings", changes),
   backups: () => request("GET", "/api/backups"),
   restoreBackup: (name) => request("POST", `/api/backups/${encodeURIComponent(name)}/restore?replace=true`),
 

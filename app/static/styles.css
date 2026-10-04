@@ -101,6 +101,15 @@ select.status.skip{color:var(--skip)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:.3s;z-index:60;pointer-events:none}
 .toast.on{opacity:1}
 
+/* Settings dialog */
+.settings-btn{font-size:18px;padding:4px 10px;line-height:1}
+.modal:has(.settings-form){max-width:720px}
+.settings-form textarea{width:100%;min-height:260px;resize:vertical;font-size:13px;line-height:1.45}
+.settings-form .hint{font-size:12px;color:var(--mut);margin-top:6px}
+.settings-form code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.settings-form .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.settings-form .lnkbtn{text-decoration:underline}
+
 /* Backup status line at the bottom of the page */
 .backup-status{padding:0 20px 40px;color:var(--mut);font-size:13px;text-align:center}
 .backup-status .warn{color:var(--play)}
