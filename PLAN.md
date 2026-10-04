@@ -96,9 +96,10 @@ Installation flow (Unraid, all in the web UI):
 ## Phase 7 — AI assistant (MCP)
 Ask Claude (Desktop / Code) "add the Resident Evil franchise": it researches, checks for duplicates,
 shows the proposed list for approval, then writes it through the app's tools.
-- [ ] MCP server exposing tools over the existing API: list/find, get preferences, add franchise with its games (one transaction), update game
-- [ ] "AI instructions" note in a Settings page (platform preferences, what to skip, remakes, DLC…), read by the AI every time
-- [ ] Games the AI decides to skip are still added, with status Skip and a note explaining why
+- [x] MCP server at `/mcp` (official Python SDK v2, inside the app): get_instructions, list_franchises, get_franchise, search_games, add_franchise, add_games, update_game — reusing the app's validation
+- [x] Settings: AI assistant switch (off by default; `/mcp` refuses everything when off), "AI instructions" text, platform manager (add / rename / reorder / delete when unused)
+- [x] Games the AI decides to skip are still added, with status Skip and a note explaining why (in the instructions)
+- [ ] Release; switch the AI on and add NSO on the server; register the server in Claude Code; first real "add a franchise"
 - [ ] Remember each game's metadata source id (e.g. IGDB) for duplicate checks and the TBA date scan
 - Later option: an "Add with AI" box inside the app (Claude API key, works from the phone)
 
