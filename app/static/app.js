@@ -3,6 +3,7 @@
 import { api } from "./api.js";
 import { confirmDialog, formDialog } from "./dialog.js";
 import { BLANK_GAME, openGamePanel } from "./panel.js";
+import { openPicker } from "./picker.js";
 
 // ---------- state ----------
 let franchises = [];          // from GET /api/franchises, in custom order
@@ -208,6 +209,25 @@ function saveState(text, cls = "") {
   el.className = `save-state ${cls}`;
   el.textContent = text;
   if (cls === "saved") fadeTimer = setTimeout(() => el.classList.add("fade"), 1500);
+}
+
+let toastTimer;
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), 2500);
+}
+
+// Open a game's franchise, scroll its row into view and flash it briefly.
+function reveal(franchise, game) {
+  expanded.add(franchise.id);
+  render();
+  const row = document.querySelector(`tr[data-game="${game.id}"]`);
+  row?.scrollIntoView({ block: "center", behavior: "smooth" });
+  row?.classList.add("flash");
+  setTimeout(() => row?.classList.remove("flash"), 1600);
 }
 
 function showProblem(message) {
@@ -487,6 +507,16 @@ document.addEventListener("click", (event) => {
     $("problem").hidden = true;
   } else if (action === "add-franchise") {
     addFranchise();
+  } else if (action === "pick") {
+    openPicker({
+      franchises,
+      onOpen: (game, franchise) => openGame(game, franchise),
+      onPlaying: (game, franchise) => save(async () => {
+        Object.assign(game, await api.updateGame(game.id, { status: "playing" }));
+        reveal(franchise, game);
+        toast(`Now playing: ${game.title}`);
+      }),
+    });
   } else if (action === "open-panel" || action === "delete-game" || action.startsWith("move-")) {
     const { franchise, game } = findGame(Number(target.closest("[data-game]").dataset.game));
     if (!game) return;

@@ -152,6 +152,11 @@ tr.drop-after td{box-shadow:inset 0 -2px 0 var(--acc)}
 .fr.dragging{opacity:.35}
 .fr.drop-before{box-shadow:0 -3px 0 var(--acc)}
 .fr.drop-after{box-shadow:0 3px 0 var(--acc)}
+.roll-game a{color:inherit;text-decoration:none;border-bottom:2px solid rgba(124,92,255,.5)}
+.roll-game a:hover{border-bottom-color:var(--acc)}
+@keyframes flash{from{background:rgba(124,92,255,.35)}to{background:transparent}}
+tr.flash td{animation:flash 1.6s ease-out}
+.roll-hint{text-align:center;color:var(--mut);font-size:12px;margin-top:14px}
 .panel-error{flex:1;align-self:center;color:var(--danger);font-size:13px}
 .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600}
 .btn-danger:hover{background:#e84a4a;border-color:#e84a4a}
