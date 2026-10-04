@@ -7,7 +7,6 @@ venv
 .env
 .env.*
 data/
-legacy/
 unraid/
 **/__pycache__
 *.pyc

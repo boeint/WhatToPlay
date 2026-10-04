@@ -7,7 +7,7 @@
 | Backend | Python 3.14 + FastAPI (same stack as RomM, useful for a later RomM API integration) |
 | Database | New `whattoplay` database + `whattoplay_dev` sandbox and a dedicated user on the existing MariaDB container. RomM's database is never touched. |
 | Schema changes | Alembic migrations |
-| Frontend | Plain HTML / CSS / JS (no framework, no build step), ported from `legacy/backlog.html` |
+| Frontend | Plain HTML / CSS / JS (no framework, no build step), ported from the original single-file app (in the repository history, e.g. tag `v1.0.0`: `legacy/backlog.html`, with its brief `HANDOFF.md`) |
 | Access | LAN-only, no login. Remote access via Unraid's VPN (Tailscale / WireGuard). |
 | Deployment | GitHub Actions builds and tests the image and publishes it to ghcr.io (public). Installed on Unraid from the web UI with a template (`unraid/whattoplay.xml`) — no terminal. Pushes to `main` publish `:dev`; release tags (`v1.2.3`) publish `:latest`, which the server follows. |
 | Data | Kept out of git. Initial data loaded through the app's own Import feature. |
@@ -74,7 +74,7 @@ Installation flow (Unraid, all in the web UI):
 - [x] Step 6: "What to play next" picker, skipping franchises whose next game is TBA or already being played
 - [x] Step 7: Export / Import buttons, automatic backup before import
 - [x] Step 8: phone layout (cards, full-screen panel); reload data when returning to the tab
-- [x] Re-check every feature in HANDOFF §2 (the legacy app is inspiration, not the spec: improve where it makes sense)
+- [x] Re-check every feature of the original app (its brief, `HANDOFF.md` §2, is in the history; the legacy app is inspiration, not the spec: improve where it makes sense)
 
 ## Phase 5 — Deploy to Unraid
 - [x] `Dockerfile` (non-root, health check), start script (waits for the database, runs migrations), first-run screen
