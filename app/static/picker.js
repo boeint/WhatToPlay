@@ -1,6 +1,6 @@
 // "What to play next": pick a random franchise and suggest its next game in
 // play order. A franchise takes part only if its next game (the first one not
-// finished or skipped) is released (not TBA) and not already being played.
+// finished or skipped) is released (not TBA or upcoming) and not already being played.
 
 const overlay = document.getElementById("picker");
 
@@ -15,11 +15,22 @@ function esc(value) {
 
 const nextGame = (f) => f.games.find((g) => g.status !== "finished" && g.status !== "skip") || null;
 
+// Not out yet: TBA, or dated after the current month (dates are month + year, so a
+// game released "this month" counts as released; a year-only date from that year).
+function isUnreleased(game) {
+  if (game.release_tba) return true;
+  if (!game.release_year) return false;
+  const now = new Date();
+  const thisMonth = now.getFullYear() * 12 + now.getMonth() + 1;
+  const released = game.release_year * 12 + (game.release_month || 1);
+  return released > thisMonth;
+}
+
 // Every franchise whose next game can be suggested, with that game.
 function candidates() {
   return current.franchises
     .map((franchise) => ({ franchise, game: nextGame(franchise) }))
-    .filter(({ game }) => game && !game.release_tba && game.status !== "playing");
+    .filter(({ game }) => game && !isUnreleased(game) && game.status !== "playing");
 }
 
 function roll() {
@@ -55,7 +66,7 @@ function render() {
         <select data-picker="scope" aria-label="Pick from"><option value="all">any franchise</option>${options}</select>
       </div>
       ${card}
-      <div class="roll-hint">${all.length} franchise${all.length === 1 ? "" : "s"} in the draw. Unreleased (TBA) and already-playing games are left out.</div>
+      <div class="roll-hint">${all.length} franchise${all.length === 1 ? "" : "s"} in the draw. Unreleased (TBA or upcoming) and already-playing games are left out.</div>
       <div class="roll-actions">
         <button type="button" class="btn-roll" data-picker="roll">🎲 Re-roll</button>
         ${pick ? `<button type="button" data-picker="playing">Set as Playing</button>
