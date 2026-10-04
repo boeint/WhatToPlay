@@ -6,6 +6,7 @@
   --danger:#ff5d5d;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}   /* the hidden attribute always wins over display rules */
 body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 a{color:var(--acc2)}
 header{position:sticky;top:0;z-index:20;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
@@ -115,6 +116,9 @@ select.status.skip{color:var(--skip)}
 .open-panel{flex:0 0 auto;background:transparent;border-color:transparent;color:var(--mut);padding:2px 6px;font-size:13px;line-height:1}
 .open-panel:hover{color:var(--txt);background:var(--panel2)}
 
+.card-label{display:none}
+.t-notes input::placeholder{color:transparent}   /* shown only on phones, where the column header is gone */
+
 /* Game detail panel: slides in from the right */
 .backdrop{position:fixed;inset:0;background:rgba(5,7,12,.55);z-index:40}
 .backdrop[hidden]{display:none}
@@ -182,3 +186,67 @@ tr.flash td{animation:flash 1.6s ease-out}
 .statuses input:checked+span.playing{color:var(--play);border-color:var(--play);background:rgba(255,176,32,.1)}
 .statuses input:checked+span.finished{color:var(--done);border-color:var(--done);background:rgba(61,220,132,.1)}
 .statuses input:checked+span.skip{color:var(--txt);border-color:var(--skip);background:rgba(107,114,128,.25)}
+
+/* ---------- Phone layout (narrow screens) ----------
+   Same HTML; each game row becomes a card laid out with a CSS grid. */
+@media (max-width: 760px) {
+  header{padding:10px 12px;gap:8px 10px}
+  header .btn-roll{padding:7px 12px;font-size:14px}
+  .stats{gap:10px;font-size:12px;width:100%}
+  .bar{padding:10px 12px;gap:8px}
+  .bar input[type=search]{flex:1 1 100%;min-width:0;max-width:none}
+  .bar .grow{display:none}
+  .bar button,.bar select{font-size:13px;padding:6px 9px}
+  .desktop-only{display:none}   /* backups are a desktop task */
+  main{padding:4px 8px 80px}
+  .error{margin:10px 8px}
+
+  .fr{margin:8px 0;border-radius:12px}
+  .fr-head{flex-wrap:wrap;gap:6px 8px;padding:10px 10px}
+  .fr-title{flex:1 1 0;min-width:0;font-size:17px;padding:2px 4px}
+  .fr-summary{order:3;flex:1 1 100%;display:flex;gap:6px;padding-left:24px;min-width:0}
+  .ondeck{max-width:none;min-width:0}
+  .fr-actions{margin-left:0}
+  .fr-actions button{padding:5px 9px}
+  .fr-notes{padding:8px 10px 4px}
+  .fr-notes .lbl{display:none}
+  .games-frame{margin:2px 6px 10px}
+
+  /* the table turns into a list of cards */
+  .games-frame table,.games-frame tbody{display:block}
+  .games-frame thead,.games-frame colgroup{display:none}
+  .games-frame tr{display:grid;grid-template-columns:auto auto 1fr auto;
+    grid-template-areas:"title title title del" "status playon playon ord" "rel plat plat ord" "notes notes links links";
+    gap:4px 8px;align-items:center;padding:10px 8px;border-bottom:1px solid #20242f}
+  .games-frame tr:last-child{border-bottom:none}
+  .games-frame td{display:block;padding:0;border:none;min-width:0;overflow:visible}
+  .t-title{grid-area:title;padding-left:0}
+  .t-status{grid-area:status}
+  .t-playon{grid-area:playon;display:flex!important;align-items:center;gap:6px}
+  .t-rel{grid-area:rel}
+  .t-plat{grid-area:plat}
+  .t-notes{grid-area:notes}
+  .t-links{grid-area:links;text-align:right}
+  .t-ord{grid-area:ord;align-self:stretch}
+  .t-del{grid-area:del}
+  .card-label{display:inline;font-size:11px;color:var(--mut);white-space:nowrap}
+  .t-playon select{width:auto;max-width:100%;border-color:var(--line)}
+  .t-notes input{padding:4px 6px}
+  .t-notes input::placeholder{color:var(--un)}
+  .title-wrap input{font-size:15px;padding:4px 6px}
+  .plat-cell{min-height:0;padding:2px 0}
+  .drag-handle{display:none}               /* drag and drop needs a mouse */
+  .ord{height:100%;justify-content:center;gap:6px}
+  .ord button{font-size:14px;line-height:1;padding:8px 10px;background:var(--panel2)}   /* easy to tap */
+  .fr-foot{padding:8px 10px}
+
+  /* detail panel and dialogs use the whole screen */
+  .panel{width:100vw;border-left:none}
+  .panel-head,.panel-body,.panel-foot{padding-left:14px;padding-right:14px}
+  .panel-foot{flex-wrap:wrap}
+  .panel-error{flex-basis:100%;order:-1}
+  .link-row{grid-template-columns:80px 1fr auto}
+  .ov{padding:10px}
+  .modal{padding:18px}
+  .roll-game{font-size:24px}
+}

@@ -75,16 +75,16 @@ function renderGame(g, index, games) {
       <button class="open-panel" data-action="open-panel" title="All details">✎</button>
     </div></td>
     <td class="t-rel" data-action="open-panel" title="Edit release date">${esc(g.released)}</td>
-    <td><div class="plat-cell" data-action="open-panel" title="Edit platforms">${chips}</div></td>
-    <td class="t-playon"><select data-field="play_on" aria-label="Play on" ${g.platforms.length ? "" : "disabled"}>${playOnOptions}</select></td>
-    <td><select data-field="status" class="status ${g.status}" aria-label="Status">${statusOptions}</select></td>
-    <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes"></td>
-    <td class="t-links">${links}<button class="lnkbtn">＋</button></td>
-    <td><div class="ord">
+    <td class="t-plat"><div class="plat-cell" data-action="open-panel" title="Edit platforms">${chips}</div></td>
+    <td class="t-playon"><span class="card-label">Play on</span><select data-field="play_on" aria-label="Play on" ${g.platforms.length ? "" : "disabled"}>${playOnOptions}</select></td>
+    <td class="t-status"><select data-field="status" class="status ${g.status}" aria-label="Status">${statusOptions}</select></td>
+    <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes" placeholder="Notes"></td>
+    <td class="t-links">${links}<button class="lnkbtn" data-action="open-panel" title="Edit links">＋</button></td>
+    <td class="t-ord"><div class="ord">
       <button data-action="move-up" title="Move up" ${index === 0 ? "disabled" : ""}>▲</button>
       <button data-action="move-down" title="Move down" ${index === games.length - 1 ? "disabled" : ""}>▼</button>
     </div></td>
-    <td><button class="del" data-action="delete-game" title="Delete game">×</button></td>
+    <td class="t-del"><button class="del" data-action="delete-game" title="Delete game">×</button></td>
   </tr>`;
 }
 
@@ -661,10 +661,25 @@ document.addEventListener("mouseup", () => {
   try { localStorage.setItem("whattoplay.cols", JSON.stringify(columnWidths)); } catch { /* private mode */ }
 });
 
+// ---------- fresh data across devices ----------
+// Coming back to this tab after a while (e.g. after editing on the phone):
+// quietly reload, unless something is being edited here right now.
+const REFRESH_AFTER_MS = 30_000;
+let lastLoaded = 0;
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || Date.now() - lastLoaded < REFRESH_AFTER_MS) return;
+  const busy = !$("panel").hidden
+    || document.querySelector(".ov.on")
+    || document.activeElement?.matches("input, textarea, select");
+  if (!busy) load();
+});
+
 // ---------- start ----------
 async function load() {
   try {
     [franchises, platforms] = await Promise.all([api.franchises(), api.platforms()]);
+    lastLoaded = Date.now();
     render();
   } catch (err) {
     $("app").innerHTML = "";
