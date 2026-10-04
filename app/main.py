@@ -6,9 +6,10 @@ then open http://localhost:8000/docs
 """
 from fastapi import FastAPI
 
-from app.routers import franchises, platforms
+from app.routers import franchises, games, platforms
 
 app = FastAPI(title="WhatToPlay", version="0.1.0")
 
 app.include_router(platforms.router)
 app.include_router(franchises.router)
+app.include_router(games.router)

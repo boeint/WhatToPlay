@@ -6,7 +6,7 @@ what to expose, independently of how data is stored.
 import calendar
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app import backloggd
 from app.models import Franchise, Game, Status
@@ -109,3 +109,72 @@ class FranchiseUpdate(BaseModel):
 
     name: str = Field(None, min_length=1, max_length=200)
     notes: str = None
+
+
+def _check_url(value: str | None) -> str | None:
+    if value is not None and not value.startswith(("http://", "https://")):
+        raise ValueError("must start with http:// or https://")
+    return value
+
+
+class LinkIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    label: str = Field(min_length=1, max_length=100)
+    url: str = Field(min_length=1, max_length=2000)
+
+    _url = field_validator("url")(_check_url)
+
+
+class _GameRules(BaseModel):
+    """Validation shared by GameCreate and GameUpdate."""
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("release_note", "backloggd_url", mode="after", check_fields=False)
+    @classmethod
+    def empty_means_none(cls, value: str | None) -> str | None:
+        return value or None
+
+    @field_validator("backloggd_url", mode="after", check_fields=False)
+    @classmethod
+    def url_scheme(cls, value: str | None) -> str | None:
+        return _check_url(value)
+
+    @field_validator("platforms", mode="after", check_fields=False)
+    @classmethod
+    def no_duplicate_platforms(cls, value: list[str]) -> list[str]:
+        if len({p.lower() for p in value}) != len(value):
+            raise ValueError("a platform is listed twice")
+        return value
+
+
+class GameCreate(_GameRules):
+    title: str = Field(min_length=1, max_length=255)
+    release_year: int | None = Field(None, ge=1950, le=2100)
+    release_month: int | None = Field(None, ge=1, le=12)
+    release_note: str | None = Field(None, max_length=50)
+    status: Status = Status.UNPLAYED
+    finished_on: date | None = None   # left out: set automatically when status is finished
+    notes: str = ""
+    platforms: list[str] = []         # platform names, in order
+    links: list[LinkIn] = []
+    backloggd_url: str | None = Field(None, max_length=500)
+
+
+class GameUpdate(_GameRules):
+    """Send only what changes. `platforms` and `links` replace the whole list.
+
+    Fields that can be empty (release_month, finished_on, ...) accept null to
+    clear them; the others reject null (see FranchiseUpdate).
+    """
+    franchise_id: int = None          # move the game to another franchise
+    title: str = Field(None, min_length=1, max_length=255)
+    release_year: int | None = Field(None, ge=1950, le=2100)
+    release_month: int | None = Field(None, ge=1, le=12)
+    release_note: str | None = Field(None, max_length=50)
+    status: Status = None
+    finished_on: date | None = None
+    notes: str = None
+    platforms: list[str] = None
+    links: list[LinkIn] = None
+    backloggd_url: str | None = Field(None, max_length=500)
