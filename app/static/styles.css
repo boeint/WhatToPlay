@@ -82,9 +82,11 @@ select.status.skip{color:var(--skip)}
 .del:hover{background:rgba(255,93,93,.12);border-color:transparent}
 .fr-foot{padding:8px 14px;border-top:1px solid #20242f}
 .fr-foot button{font-size:13px;color:var(--mut)}
-.ov{position:fixed;inset:0;background:rgba(5,7,12,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+/* The overlay scrolls when a dialog is taller than the window; margin:auto centers
+   the dialog without ever pushing its top out of reach (flex centering would). */
+.ov{position:fixed;inset:0;background:rgba(5,7,12,.7);display:none;z-index:50;padding:20px;overflow-y:auto}
 .ov.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.modal{margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .modal h2{margin:0 0 4px}
 .roll-card{text-align:center;padding:10px 0 4px}
 .roll-fr{color:var(--acc);font-size:13px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
