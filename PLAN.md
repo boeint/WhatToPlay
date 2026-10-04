@@ -63,8 +63,8 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [ ] Try every endpoint from the `/docs` page
 
 ## Phase 3 — Initial data
-- [ ] One-off conversion of `data/seed.json` into the new import format
-- [ ] Import into `whattoplay_dev`, verify: 97 franchises, 560 games, 34 finished, 2 playing, 11 game notes, 1 Backloggd override
+- [x] One-off conversion of `data/seed.json` into the new import format (`data/import-initial.json`, not committed)
+- [x] Import into `whattoplay_dev`, verify: 97 franchises, 560 games, 34 finished, 2 playing, 7 TBA, 11 game notes, 1 Backloggd override
 
 ## Phase 4 — Frontend
 - [ ] Split into `index.html`, `styles.css`, `app.js`, `api.js`; drop the SEED
