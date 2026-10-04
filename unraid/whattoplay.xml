@@ -24,4 +24,9 @@ On first start the app creates its tables, then offers to import a backup.</Over
   <Config Name="DB_NAME" Target="DB_NAME" Default="whattoplay" Mode="" Description="Name of the database created for WhatToPlay" Type="Variable" Display="always" Required="true" Mask="false">whattoplay</Config>
   <Config Name="DB_USER" Target="DB_USER" Default="whattoplay" Mode="" Description="Database user created for WhatToPlay" Type="Variable" Display="always" Required="true" Mask="false">whattoplay</Config>
   <Config Name="DB_PASSWORD" Target="DB_PASSWORD" Default="" Mode="" Description="That user's password" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Backups" Target="/backups" Default="/mnt/user/appdata/whattoplay/backups" Mode="rw" Description="Folder for the daily backup files (the same files as the Export button; restore one with Import)" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/whattoplay/backups</Config>
+  <Config Name="BACKUP_KEEP" Target="BACKUP_KEEP" Default="30" Mode="" Description="Number of daily backup files to keep" Type="Variable" Display="always" Required="false" Mask="false">30</Config>
+  <Config Name="BACKUP_TIME" Target="BACKUP_TIME" Default="03:30" Mode="" Description="Time of the daily backup (HH:MM, server time)" Type="Variable" Display="always" Required="false" Mask="false">03:30</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User id the app runs as (owner of the backup files)" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group id the app runs as" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
 </Container>

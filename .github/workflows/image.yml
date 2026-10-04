@@ -21,12 +21,12 @@ jobs:
   build-test-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build the image (not published yet)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -39,9 +39,12 @@ jobs:
           docker run -d --name db --network test \
             -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=whattoplay \
             -e MARIADB_USER=whattoplay -e MARIADB_PASSWORD=test mariadb:11
+          # A backup folder owned by root, as Docker creates a missing host folder.
+          sudo mkdir "$RUNNER_TEMP/backups"
           # Started right away on purpose: the app must wait for the database itself.
           docker run -d --name app --network test -p 8000:8000 -e TZ=America/New_York \
             -e DB_HOST=db -e DB_NAME=whattoplay -e DB_USER=whattoplay -e DB_PASSWORD=test \
+            -v "$RUNNER_TEMP/backups:/backups" \
             whattoplay:test
           for i in $(seq 1 40); do
             curl -fsS http://localhost:8000/api/health && break
@@ -56,6 +59,14 @@ jobs:
           tz=$(docker exec app python -c "import time; print(time.strftime('%Z'))")
           echo "time zone inside the container: $tz"
           case "$tz" in EST|EDT) ;; *) echo "TZ is not honored"; exit 1 ;; esac
+          # The app's own process (PID 1) runs as 99:100, not root
+          test "$(docker exec app stat -c %u:%g /proc/1)" = "99:100"
+          # A start-up backup was written, owned by 99:100, and is a valid export
+          sleep 3
+          ls -ln "$RUNNER_TEMP/backups"
+          backup=$(ls "$RUNNER_TEMP"/backups/whattoplay-export-*.json)
+          test "$(stat -c %u:%g "$backup")" = "99:100"
+          python3 -c "import json, sys; d = json.load(open(sys.argv[1])); assert d['format'] == 'whattoplay-export' and len(d['platforms']) == 31" "$backup"
           echo "all checks passed"
 
       - name: Show the app's log
@@ -64,7 +75,7 @@ jobs:
 
       - name: Work out the image tags
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
           flavor: latest=false
@@ -74,14 +85,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true

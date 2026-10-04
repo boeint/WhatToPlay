@@ -4,6 +4,8 @@ Run locally:
     uvicorn app.main:app
 then open http://localhost:8000/docs
 """
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
@@ -12,12 +14,22 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError
 
+from app.backups import backup_loop
 from app.db import get_engine
 from app.routers import backup, franchises, games, platforms
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="WhatToPlay", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Runs while the app is up: starts the daily backup task, stops it on shutdown."""
+    task = asyncio.create_task(backup_loop())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="WhatToPlay", version="1.0.0", lifespan=lifespan)
 
 app.include_router(platforms.router)
 app.include_router(franchises.router)

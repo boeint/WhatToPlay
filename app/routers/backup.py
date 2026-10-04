@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Session
 
 from app.deps import SessionDep
 from app.models import Franchise, Game, Platform
@@ -13,10 +14,15 @@ from app.schemas import ExportFile, ExportFranchise, GameCreate
 
 router = APIRouter(tags=["backup"])
 
+EXPORT_PREFIX = "whattoplay-export-"
 
-@router.get("/api/export")
-def export_all(session: SessionDep):
-    """Download all data as a versioned JSON file."""
+
+def export_filename(day: date | None = None) -> str:
+    return f"{EXPORT_PREFIX}{(day or date.today()).isoformat()}.json"
+
+
+def build_export(session: Session) -> str:
+    """All data as the text of a versioned export file (used by Export and the daily backup)."""
     platforms = session.scalars(select(Platform.name).order_by(Platform.sort_order)).all()
     franchises = session.scalars(
         select(Franchise).order_by(Franchise.sort_order).options(*WITH_GAMES)
@@ -35,12 +41,16 @@ def export_all(session: SessionDep):
             for f in franchises
         ],
     )
-    body = json.dumps(export.model_dump(mode="json"), indent=2, ensure_ascii=False)
-    filename = f"whattoplay-export-{date.today().isoformat()}.json"
+    return json.dumps(export.model_dump(mode="json"), indent=2, ensure_ascii=False)
+
+
+@router.get("/api/export")
+def export_all(session: SessionDep):
+    """Download all data as a versioned JSON file."""
     return Response(
-        body,
+        build_export(session),
         media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="{export_filename()}"'},
     )
 
 

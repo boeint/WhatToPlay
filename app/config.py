@@ -5,7 +5,7 @@ environment. See .env.example for the full list.
 """
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     db_name: str
     db_user: str
     db_password: SecretStr        # SecretStr: printed as '**********', never in clear
+
+    # Daily backups: an export file written to this folder (if it exists).
+    backup_dir: str = "/backups"
+    backup_keep: int = Field(30, ge=1)                              # files to keep
+    backup_time: str = Field("03:30", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")   # HH:MM, local time
 
     @property
     def database_url(self) -> URL:

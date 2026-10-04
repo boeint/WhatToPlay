@@ -12,6 +12,8 @@ services:
       TZ: ${TZ:-UTC}               # your time zone, e.g. America/New_York
     ports:
       - "${APP_PORT:-8095}:8000"
+    volumes:
+      - ./backups:/backups         # daily backup files (same as the Export button)
     # If MariaDB runs in Docker on a custom network, join that network so
     # DB_HOST can be the MariaDB container's name:
     # networks: [database]

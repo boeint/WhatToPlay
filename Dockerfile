@@ -18,9 +18,11 @@ COPY app ./app
 COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
-# Run as an unprivileged user, not root.
-RUN useradd --system --no-create-home --uid 10001 whattoplay
-USER whattoplay
+# The app runs as an unprivileged user (PUID/PGID, default 99:100 = Unraid's
+# nobody:users, so backup files can be opened over the network). start.sh begins
+# as root only to set the backup folder's owner, then switches to that user.
+RUN useradd --system --no-create-home --uid 99 --gid 100 whattoplay
+ENV PUID=99 PGID=100
 
 EXPOSE 8000
 

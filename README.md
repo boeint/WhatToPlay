@@ -50,6 +50,21 @@ Copy [`docker-compose.yml`](docker-compose.yml) and [`.env.example`](.env.exampl
 The container waits for the database, creates its tables, and starts on port **8095** (or the one
 you chose). An empty backlog offers to **import a backup** or to start with a new franchise.
 
+## Backups and restore
+
+- **Daily backups:** every day at `BACKUP_TIME` the app writes `whattoplay-export-YYYY-MM-DD.json` to
+  the folder mapped to `/backups` (on Unraid: `/mnt/user/appdata/whattoplay/backups` by default) and
+  keeps the newest `BACKUP_KEEP` files. One is also written at start-up if today's is missing.
+- **Manual backup:** the **Export** button downloads the same file.
+- **Restore:** **Import** ▸ choose a backup file. Import replaces everything, after downloading a backup
+  of the current data first; if the file is rejected, nothing is changed.
+
+## Updating
+
+On Unraid, the Docker tab shows an update when a new release is published: click **Apply Update**.
+The container applies any database changes on start-up; your data is kept. With Docker Compose:
+`docker compose pull && docker compose up -d`.
+
 ## Configuration
 
 | Variable | Default | |
@@ -59,7 +74,11 @@ you chose). An empty backlog offers to **import a backup** or to start with a ne
 | `DB_NAME` | — | Database created for WhatToPlay |
 | `DB_USER` | — | User created for WhatToPlay |
 | `DB_PASSWORD` | — | That user's password |
-| `TZ` | `UTC` | Time zone, used for "finished on" dates (Unraid sets it automatically) |
+| `TZ` | `UTC` | Time zone, used for "finished on" dates and the backup time (Unraid sets it automatically) |
+| `BACKUP_DIR` | `/backups` | Folder for daily backups; backups are off if it doesn't exist |
+| `BACKUP_KEEP` | `30` | Number of daily backup files to keep |
+| `BACKUP_TIME` | `03:30` | Time of the daily backup (HH:MM) |
+| `PUID` / `PGID` | `99` / `100` | User and group the app runs as (owner of the backup files) |
 
 ## Development
 
