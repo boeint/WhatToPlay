@@ -10,13 +10,13 @@ from app.models import Setting
 DEFAULT_AI_INSTRUCTIONS = """\
 How to add a franchise or games to my backlog:
 
-- Research the franchise on the web (official sites, Wikipedia, Backloggd/IGDB). Include every mainline game and the notable spin-offs.
+- Research the franchise on the web (official sites, Wikipedia, Backloggd/IGDB). Include every game: mainline games and spin-offs. Minor ones are still added, as Skip with a note (see below).
 - Put games in play order: release order, unless the story order is clearly better.
 - Remakes and remasters are separate games, right after the original. If the remake is clearly the better way to play, mark the original Skip with the note "Play the remake instead".
 - Release date: the full launch (month and year), never early access. If it isn't final, set TBA, with the expected year if one is announced.
 - Platforms: everywhere the game is officially available, including later ports.
-- Play on: PC when available; otherwise the most recent platform it's on.
-- Games you decide to skip (mobile-only spin-offs, gacha games, compilations of games already listed, minor re-releases) are still added, with status Skip and a short note saying why.
+- Play on: PC if the game is available on PC; otherwise the platform it originally came out on (e.g. SNES). Play on is always a platform, never a device: I play PC games on a Steam Deck and retro games on handhelds, and I note the device myself after playing.
+- Minor games and games you decide to skip (mobile-only spin-offs, gacha games, compilations of games already listed, minor re-releases) are still added, with status Skip and a short note saying why.
 - DLC and expansions are not separate games unless sold as standalone games.
 - Check for duplicates first, including in other franchises.
 - New games are Unplayed.
