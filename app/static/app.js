@@ -181,8 +181,10 @@ function render() {
 function renderStats() {
   const games = franchises.flatMap((f) => f.games);
   const count = (status) => games.filter((g) => g.status === status).length;
+  const s = (n) => (n === 1 ? "" : "s");
   $("stats").innerHTML =
-    `<span>📚 <b>${franchises.length}</b> franchises</span><span>🎮 <b>${games.length}</b> games</span>` +
+    `<span>📚 <b>${franchises.length}</b> franchise${s(franchises.length)}</span>` +
+    `<span>🎮 <b>${games.length}</b> game${s(games.length)}</span>` +
     `<span>✅ <b>${count("finished")}</b> done</span><span>▶ <b>${count("playing")}</b> playing</span>` +
     `<span>⏳ <b>${games.filter(isOpenGame).length}</b> left</span>`;
 }
@@ -530,6 +532,10 @@ document.addEventListener("click", (event) => {
     const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
     if (action === "add-game") openNewGame(franchise);
     else deleteFranchise(franchise);
+  } else if (action === "export") {
+    exportData();
+  } else if (action === "import") {
+    $("import-file").click();
   } else if (action === "expand-all") {
     franchises.forEach((f) => expanded.add(f.id));
     render();
@@ -543,6 +549,75 @@ document.addEventListener("click", (event) => {
     statusFilter = "all";
     render();
   }
+});
+
+// ---------- export / import ----------
+function saveFile(blob, filename) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+}
+
+async function exportData() {
+  try {
+    const { blob, filename } = await api.exportAll();
+    saveFile(blob, filename);
+    toast(`Exported ${filename}`);
+  } catch (err) {
+    showProblem(`Export failed: ${err.message}`);
+  }
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+async function importData(file) {
+  // 1. Read and sanity-check the file in the browser before anything else.
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return showProblem(`"${file.name}" isn't a valid JSON file.`);
+  }
+  if (data?.format !== "whattoplay-export") {
+    return showProblem(`"${file.name}" isn't a WhatToPlay export file (exports made by the old app can't be imported).`);
+  }
+  // 2. Say exactly what will happen.
+  const fileGames = (data.franchises || []).reduce((n, f) => n + (f.games || []).length, 0);
+  const nowGames = franchises.reduce((n, f) => n + f.games.length, 0);
+  const when = data.exported_at ? ` (exported ${new Date(data.exported_at).toLocaleDateString()})` : "";
+  const ok = await confirmDialog(
+    `This file has ${plural((data.franchises || []).length, "franchise")} and ${plural(fileGames, "game")}${when}. ` +
+    `Importing replaces all your current data: ${plural(franchises.length, "franchise")} and ${plural(nowGames, "game")}. ` +
+    "A backup of your current data is downloaded first.",
+    "Back up & import", { danger: true });
+  if (!ok) return;
+  // 3. Backup first; no backup, no import.
+  try {
+    const { blob, filename } = await api.exportAll();
+    saveFile(blob, filename.replace(".json", "-before-import.json"));
+  } catch (err) {
+    return showProblem(`Import cancelled: the backup could not be made (${err.message}).`);
+  }
+  // 4. Import (all or nothing on the server), then show the new data.
+  saveState("Importing…");
+  try {
+    const counts = await api.importAll(data);
+    saveState("Saved ✓", "saved");
+    expanded.clear();
+    await load();
+    toast(`Imported ${plural(counts.franchises, "franchise")} and ${plural(counts.games, "game")}`);
+  } catch (err) {
+    saveState("");
+    showProblem(`Not imported, nothing was changed: ${err.message}`);
+  }
+}
+
+$("import-file").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";   // so choosing the same file again still triggers
+  if (file) importData(file);
 });
 
 // ---------- search, filter, sort ----------

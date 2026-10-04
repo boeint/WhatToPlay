@@ -50,4 +50,19 @@ export const api = {
   deleteGame: (id) => request("DELETE", `/api/games/${id}`),
   setGameOrder: (franchiseId, gameIds) => request("PUT", `/api/franchises/${franchiseId}/game-order`, gameIds),
   setFranchiseOrder: (franchiseIds) => request("PUT", "/api/franchise-order", franchiseIds),
+  importAll: (exportFile) => request("POST", "/api/import?replace=true", exportFile),
+
+  // The export as a file to save: { blob, filename }.
+  async exportAll() {
+    let response;
+    try {
+      response = await fetch("/api/export");
+    } catch {
+      throw new ApiError(0, "Can't reach the server. Is it running?");
+    }
+    if (!response.ok) throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+    const filename = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") || "")?.[1]
+      || "whattoplay-export.json";
+    return { blob: await response.blob(), filename };
+  },
 };
