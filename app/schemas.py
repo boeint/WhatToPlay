@@ -6,7 +6,7 @@ what to expose, independently of how data is stored.
 import calendar
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app import backloggd
 from app.models import Franchise, Game, Status
@@ -87,3 +87,25 @@ class FranchiseOut(BaseModel):
             notes=franchise.notes,
             games=[GameOut.from_model(g) for g in franchise.games],
         )
+
+
+# --- Input (what the API accepts) -------------------------------------------
+# str_strip_whitespace: " BioShock " is saved as "BioShock".
+
+class FranchiseCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=200)
+    notes: str = ""
+
+
+class FranchiseUpdate(BaseModel):
+    """Every field is optional: send only what changes.
+
+    Defaults are None so a field can be left out, but sending `"name": null`
+    is rejected because the type is `str`.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(None, min_length=1, max_length=200)
+    notes: str = None
