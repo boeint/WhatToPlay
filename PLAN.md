@@ -88,8 +88,10 @@ Installation flow (Unraid, all in the web UI):
 - [x] `docker-compose.yml` example for installs outside Unraid
 
 ## Phase 6 — Safety net & docs
-- [ ] Database backups (Appdata Backup plugin or scheduled dump)
-- [ ] README: update, restore, run locally
+- [x] Database files: covered by the Appdata Backup plugin (already set up on the server)
+- [x] Daily export file written by the app to a mapped folder, newest 30 kept, restored with Import (v1.1.0)
+- [x] README: backups and restore, updating, running locally
+- [x] Build tools updated (Node.js 20 deprecation)
 
 ## Phase 7 — AI assistant (MCP)
 Ask Claude (Desktop / Code) "add the Resident Evil franchise": it researches, checks for duplicates,
