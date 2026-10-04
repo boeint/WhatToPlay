@@ -1,0 +1,26 @@
+# --- Secrets -------------------------------------------------------------
+# Real configuration (database password etc.). Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# --- Personal data -------------------------------------------------------
+# Exports, backups and the initial import file stay on the local machine.
+data/
+
+# --- Python --------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Editors / OS --------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store

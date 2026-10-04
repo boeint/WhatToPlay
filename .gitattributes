@@ -1,0 +1,13 @@
+# Store all text files with Linux (LF) line endings, since the app runs on Linux
+# inside Docker. Git detects which files are text automatically.
+* text=auto eol=lf
+
+# Windows-only scripts keep Windows (CRLF) line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Never touch these.
+*.png binary
+*.jpg binary
+*.ico binary
