@@ -50,6 +50,19 @@ Copy [`docker-compose.yml`](docker-compose.yml) and [`.env.example`](.env.exampl
 The container waits for the database, creates its tables, and starts on port **8095** (or the one
 you chose). An empty backlog offers to **import a backup** or to start with a new franchise.
 
+## AI assistant (optional)
+
+WhatToPlay includes an [MCP](https://modelcontextprotocol.io) server, so an AI assistant can read your
+backlog and add franchises and games for you: *"add the Resident Evil franchise"* → it researches the
+series, shows you the proposed list, and adds it once you approve.
+
+1. In the app: **⚙ Settings ▸ AI assistant** (off by default) and adjust the **AI instructions**
+   (which games to include, how to pick "Play on", etc.).
+2. In Claude Code, add the server: `claude mcp add --transport http whattoplay http://your-server:8095/mcp/`
+
+Only clients on your network can reach it (claude.ai's own connectors connect from the internet). While
+the switch is off, `/mcp` refuses every request. Writes go through the same validation as the app.
+
 ## Backups and restore
 
 - **Daily backups:** every day at `BACKUP_TIME` the app writes `whattoplay-export-YYYY-MM-DD.json` to
