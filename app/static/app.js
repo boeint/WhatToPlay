@@ -7,7 +7,8 @@ let franchises = [];          // from GET /api/franchises, in custom order
 const expanded = new Set();   // franchise ids; collapsed by default on every load
 
 // Column widths are a per-device display preference, kept in this browser.
-const COLUMN_DEFAULTS = { released: 92, platform: 200, status: 110, notes: 200, links: 80 };
+const COLUMN_DEFAULTS = { released: 92, platform: 200, playon: 110, status: 110, notes: 200, links: 80 };
+const COLUMNS = Object.keys(COLUMN_DEFAULTS);
 let columnWidths = { ...COLUMN_DEFAULTS };
 try {
   Object.assign(columnWidths, JSON.parse(localStorage.getItem("whattoplay.cols") || "null"));
@@ -27,9 +28,17 @@ const isOpenGame = (g) => g.status !== "finished" && g.status !== "skip";
 const remaining = (f) => f.games.filter(isOpenGame).length;
 const onDeck = (f) => f.games.find(isOpenGame) || null;   // first game not finished/skipped
 
+const findFranchise = (id) => franchises.find((f) => f.id === id);
+function findGame(id) {
+  for (const f of franchises) {
+    const g = f.games.find((x) => x.id === id);
+    if (g) return { franchise: f, game: g };
+  }
+  return {};
+}
+
 function colgroup() {
-  const cols = ["released", "platform", "status", "notes", "links"]
-    .map((k) => `<col data-col="${k}" style="width:${columnWidths[k]}px">`).join("");
+  const cols = COLUMNS.map((k) => `<col data-col="${k}" style="width:${columnWidths[k]}px">`).join("");
   return `<colgroup><col>${cols}<col style="width:34px"><col style="width:34px"></colgroup>`;
 }
 
@@ -38,44 +47,52 @@ function renderGame(g) {
   const chips = g.platforms.length
     ? g.platforms.map((p) => `<span class="chip">${esc(p)}</span>`).join("")
     : `<span class="ph">+ platform</span>`;
-  const options = STATUSES.map(([value, label]) =>
+  const statusOptions = STATUSES.map(([value, label]) =>
     `<option value="${value}" ${g.status === value ? "selected" : ""}>${label}</option>`).join("");
+  const playOnOptions = `<option value="">—</option>` + g.platforms.map((p) =>
+    `<option ${g.play_on === p ? "selected" : ""}>${esc(p)}</option>`).join("");
   const links = g.links.map((l) =>
     `<a href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.url)}">${esc(l.label)}</a>`).join("");
   return `<tr class="${g.status}" data-game="${g.id}">
     <td class="t-title"><div class="title-wrap"><span class="gmark">▹</span>
-      <input value="${esc(g.title)}">
+      <input data-field="title" value="${esc(g.title)}" aria-label="Title">
       <a class="bl" href="${esc(g.backloggd_link)}" target="_blank" rel="noopener" title="Open on Backloggd"><img src="https://backloggd.com/favicon.ico" alt="Backloggd"></a>
     </div></td>
     <td class="t-rel">${esc(g.released)}</td>
     <td><div class="plat-cell">${chips}</div></td>
-    <td><select class="status ${g.status}">${options}</select></td>
-    <td class="t-notes"><input value="${esc(g.notes)}"></td>
+    <td class="t-playon"><select data-field="play_on" aria-label="Play on" ${g.platforms.length ? "" : "disabled"}>${playOnOptions}</select></td>
+    <td><select data-field="status" class="status ${g.status}" aria-label="Status">${statusOptions}</select></td>
+    <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes"></td>
     <td class="t-links">${links}<button class="lnkbtn">＋</button></td>
     <td><div class="ord"><button title="Up">▲</button><button title="Down">▼</button></div></td>
     <td><button class="del" title="Delete game">×</button></td>
   </tr>`;
 }
 
-function renderFranchise(f) {
+// The part of a franchise header that depends on its games' statuses.
+function renderSummary(f) {
   const deck = onDeck(f);
   const total = f.games.length;
+  return `<span class="fr-prog">${total - remaining(f)}/${total} done</span>` + (deck
+    ? `<span class="ondeck" title="Next up">▶ ${esc(deck.title)}</span>`
+    : `<span class="fr-prog" style="color:var(--done)">✓ complete</span>`);
+}
+
+function renderFranchise(f) {
   const open = expanded.has(f.id);
   return `<div class="fr ${open ? "open" : ""}" data-franchise="${f.id}">
     <div class="fr-head" data-action="toggle">
       <span class="caret">▶</span>
-      <input class="fr-title" value="${esc(f.name)}">
-      <span class="fr-prog">${total - remaining(f)}/${total} done</span>
-      ${deck
-        ? `<span class="ondeck" title="Next up">▶ ${esc(deck.title)}</span>`
-        : `<span class="fr-prog" style="color:var(--done)">✓ complete</span>`}
+      <input class="fr-title" data-field="name" value="${esc(f.name)}" aria-label="Franchise name">
+      <span class="fr-summary">${renderSummary(f)}</span>
     </div>
     <div class="fr-body">
-      <div class="fr-notes"><span class="lbl">Notes</span><textarea>${esc(f.notes)}</textarea></div>
+      <div class="fr-notes"><span class="lbl">Notes</span><textarea data-field="notes" aria-label="Franchise notes">${esc(f.notes)}</textarea></div>
       <div class="games-frame"><table>${colgroup()}<thead><tr>
         <th>Title</th>
         <th>Released<span class="rz" data-col="released"></span></th>
         <th>Platform<span class="rz" data-col="platform"></span></th>
+        <th>Play on<span class="rz" data-col="playon"></span></th>
         <th>Status<span class="rz" data-col="status"></span></th>
         <th>Notes<span class="rz" data-col="notes"></span></th>
         <th>Links<span class="rz" data-col="links"></span></th>
@@ -101,22 +118,108 @@ function renderStats() {
     `<span>⏳ <b>${games.filter(isOpenGame).length}</b> left</span>`;
 }
 
-function showError(message) {
-  $("app").innerHTML = `<div class="error">⚠ ${esc(message)}</div>`;
+// Redraw just one game row and its franchise's summary (keeps focus elsewhere intact).
+function refreshGame(franchise, game) {
+  const row = document.querySelector(`tr[data-game="${game.id}"]`);
+  if (row) row.outerHTML = renderGame(game);
+  refreshSummary(franchise);
+}
+
+function refreshSummary(franchise) {
+  const summary = document.querySelector(`[data-franchise="${franchise.id}"] .fr-summary`);
+  if (summary) summary.innerHTML = renderSummary(franchise);
+  renderStats();
+}
+
+// ---------- save feedback ----------
+let fadeTimer;
+function saveState(text, cls = "") {
+  const el = $("save-state");
+  clearTimeout(fadeTimer);
+  el.className = `save-state ${cls}`;
+  el.textContent = text;
+  if (cls === "saved") fadeTimer = setTimeout(() => el.classList.add("fade"), 1500);
+}
+
+function showProblem(message) {
+  const box = $("problem");
+  box.innerHTML = `<span>⚠ ${esc(message)}</span><button data-action="dismiss">Dismiss</button>`;
+  box.hidden = false;
+}
+
+// Run a save; on failure, explain and reload the real data from the server.
+async function save(work) {
+  saveState("Saving…");
+  try {
+    await work();
+    saveState("Saved ✓", "saved");
+  } catch (err) {
+    saveState("");
+    showProblem(`Not saved: ${err.message}`);
+    await load();
+  }
+}
+
+// ---------- edits ----------
+async function editGame(gameId, field, value) {
+  const { franchise, game } = findGame(gameId);
+  if (!game) return;
+  await save(async () => {
+    const updated = await api.updateGame(gameId, { [field]: value });
+    Object.assign(game, updated);
+    // Title and notes are already shown as typed; only status / play_on change the row.
+    if (field === "status" || field === "play_on") refreshGame(franchise, game);
+    else refreshSummary(franchise);   // a title can appear in the "next up" pill
+  });
+}
+
+async function editFranchise(franchiseId, field, value) {
+  const franchise = findFranchise(franchiseId);
+  if (!franchise) return;
+  await save(async () => {
+    const updated = await api.updateFranchise(franchiseId, { [field]: value });
+    Object.assign(franchise, updated);
+    if (field === "name") render();   // the A–Z position may change
+  });
 }
 
 // ---------- interaction ----------
+// One listener for every editable field: it says what it edits with data-field.
+document.addEventListener("change", (event) => {
+  const el = event.target;
+  const field = el.dataset.field;
+  if (!field) return;
+  let value = el.value;
+  if (field === "play_on") value = value || null;      // "—" means none
+  if ((field === "title" || field === "name") && !value.trim()) {
+    showProblem("A name can't be empty.");
+    load();
+    return;
+  }
+  const row = el.closest("[data-game]");
+  if (row) editGame(Number(row.dataset.game), field, value);
+  else editFranchise(Number(el.closest("[data-franchise]").dataset.franchise), field, value);
+});
+
+// Enter in a one-line field saves it, like leaving the field.
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.matches("input[data-field]")) event.target.blur();
+});
+
 // One click listener for the whole page; elements say what they do with data-action.
 document.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
-  // Clicks on inputs inside a franchise header (e.g. its name) don't toggle it.
-  if (event.target.closest("input, textarea, select, button") && target.dataset.action === "toggle") return;
-  const franchiseId = Number(target.closest("[data-franchise]")?.dataset.franchise);
+  const action = target.dataset.action;
 
-  if (target.dataset.action === "toggle") {
-    expanded.has(franchiseId) ? expanded.delete(franchiseId) : expanded.add(franchiseId);
+  if (action === "toggle") {
+    // Clicks on the name field inside a franchise header don't toggle it.
+    if (event.target.closest("input, textarea, select, button")) return;
+    const id = Number(target.closest("[data-franchise]").dataset.franchise);
+    expanded.has(id) ? expanded.delete(id) : expanded.add(id);
     target.closest(".fr").classList.toggle("open");   // no full re-render needed
+  } else if (action === "dismiss") {
+    $("problem").hidden = true;
   }
 });
 
@@ -126,7 +229,8 @@ async function load() {
     franchises = await api.franchises();
     render();
   } catch (err) {
-    showError(err.message);
+    $("app").innerHTML = "";
+    showProblem(err.message);
   }
 }
 

@@ -101,4 +101,12 @@ select.status.skip{color:var(--skip)}
 .toast.on{opacity:1}
 
 /* New in the rebuild */
-.error{margin:20px;padding:14px 16px;border:1px solid var(--danger);border-radius:10px;background:rgba(255,93,93,.08);color:var(--txt)}
+.error{margin:20px;padding:14px 16px;border:1px solid var(--danger);border-radius:10px;background:rgba(255,93,93,.08);color:var(--txt);display:flex;gap:12px;align-items:center}
+.error[hidden]{display:none}
+.error button{margin-left:auto;padding:4px 10px;font-size:13px}
+.save-state{font-size:12px;color:var(--mut);transition:opacity .4s;white-space:nowrap}
+.save-state.saved{color:var(--done)}
+.save-state.fade{opacity:0}
+.t-playon select{width:100%;font-size:12px;background:transparent;border-color:transparent;color:var(--txt);padding:4px 6px}
+.t-playon select:hover,.t-playon select:focus{background:var(--panel2);border-color:var(--line)}
+.t-playon select:disabled{color:var(--un);cursor:default}

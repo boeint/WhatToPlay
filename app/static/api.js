@@ -42,4 +42,6 @@ async function request(method, path, body) {
 export const api = {
   platforms: () => request("GET", "/api/platforms"),
   franchises: () => request("GET", "/api/franchises"),
+  updateFranchise: (id, changes) => request("PATCH", `/api/franchises/${id}`, changes),
+  updateGame: (id, changes) => request("PATCH", `/api/games/${id}`, changes),
 };
