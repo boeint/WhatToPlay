@@ -15,8 +15,8 @@
 ## Phase 0 — Tools & repo
 - [x] Install Git, GitHub CLI, Python 3.14
 - [x] `gh auth login`, Git identity
-- [ ] Project structure, `.gitignore`, `.gitattributes`
-- [ ] Private GitHub repo + first push
+- [x] Project structure, `.gitignore`, `.gitattributes`
+- [x] Private GitHub repo + first push
 
 ## Phase 1 — Database
 - [ ] Find the MariaDB container and its Docker network on Unraid
