@@ -50,9 +50,7 @@ td{padding:6px 10px;border-bottom:1px solid #20242f;vertical-align:middle;overfl
 .rz:active{background:var(--acc)}
 body.resizing{cursor:col-resize;user-select:none}
 tr:last-child td{border-bottom:none}
-/* The legacy app meant to dim finished rows (tr.done) but its rows are labelled
-   "finished", so only skipped rows were ever dimmed. Kept that way for now. */
-tr.skip{opacity:.4}
+tr.skip{opacity:.4}  /* finished rows are not dimmed: the green status tag is enough */
 .ord{display:flex;flex-direction:column;gap:1px}
 .ord button{padding:0 5px;font-size:10px;line-height:14px;border-radius:4px;background:transparent;border-color:transparent;color:var(--mut)}
 .ord button:hover{color:var(--txt);background:var(--panel2)}

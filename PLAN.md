@@ -69,7 +69,8 @@ One compose file is provided, for connecting to an existing MariaDB server.
 ## Phase 4 — Frontend
 - [ ] Split into `index.html`, `styles.css`, `app.js`, `api.js`; drop the SEED
 - [ ] Replace localStorage data saving with API calls (column widths / expanded franchises stay per-device in localStorage)
-- [ ] Re-check every feature in HANDOFF §2
+- [ ] Phone layout: games shown as compact cards instead of table rows on narrow screens
+- [ ] Re-check every feature in HANDOFF §2 (the legacy app is inspiration, not the spec: improve where it makes sense)
 
 ## Phase 5 — Deploy to Unraid
 - [ ] `Dockerfile`, `docker-compose.yml`, `.env.example`
