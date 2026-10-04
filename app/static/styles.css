@@ -110,3 +110,45 @@ select.status.skip{color:var(--skip)}
 .t-playon select{width:100%;font-size:12px;background:transparent;border-color:transparent;color:var(--txt);padding:4px 6px}
 .t-playon select:hover,.t-playon select:focus{background:var(--panel2);border-color:var(--line)}
 .t-playon select:disabled{color:var(--un);cursor:default}
+.t-rel{cursor:pointer}
+.t-rel:hover,.plat-cell:hover{color:var(--txt)}
+.open-panel{flex:0 0 auto;background:transparent;border-color:transparent;color:var(--mut);padding:2px 6px;font-size:13px;line-height:1}
+.open-panel:hover{color:var(--txt);background:var(--panel2)}
+
+/* Game detail panel: slides in from the right */
+.backdrop{position:fixed;inset:0;background:rgba(5,7,12,.55);z-index:40}
+.backdrop[hidden]{display:none}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--panel);border-left:1px solid var(--line);z-index:45;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.45)}
+.panel[hidden]{display:none}
+.panel-head{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.panel-head .kicker{font-size:12px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.panel-head input{width:100%;font-size:20px;font-weight:600;margin-top:6px}
+.panel-body{flex:1;overflow:auto;padding:6px 20px 20px}
+.panel-foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--line);justify-content:flex-end}
+.field{margin-top:16px}
+.field>label,.field .label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.field .hint{font-size:12px;color:var(--mut);margin-top:5px;overflow-wrap:anywhere}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row input[type=number]{width:96px}
+.check{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.check input{width:auto}
+.panel textarea{width:100%;min-height:90px;resize:vertical}
+.panel select,.panel input[type=url],.panel input[type=text]{width:100%}
+.panel .row select,.panel .row input{width:auto}
+.toggles{display:flex;flex-wrap:wrap;gap:5px}
+.toggles label{cursor:pointer}
+.toggles input{position:absolute;opacity:0;width:0;height:0}
+.toggles span{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--mut);background:var(--panel2)}
+.toggles label:hover span{border-color:var(--acc)}
+.toggles input:checked+span{color:#fff;background:rgba(124,92,255,.35);border-color:var(--acc)}
+.toggles input:focus-visible+span,.statuses input:focus-visible+span{outline:2px solid var(--acc2);outline-offset:1px}
+.link-row{display:grid;grid-template-columns:110px 1fr auto;gap:6px;margin-bottom:6px}
+.link-row input{width:100%}
+.statuses{display:flex;gap:6px;flex-wrap:wrap}
+.statuses label{cursor:pointer}
+.statuses input{position:absolute;opacity:0;width:0;height:0}
+.statuses span{display:inline-block;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:20px;padding:4px 12px;color:var(--mut)}
+.statuses input:checked+span.unplayed{color:var(--txt);border-color:var(--un);background:rgba(91,100,120,.25)}
+.statuses input:checked+span.playing{color:var(--play);border-color:var(--play);background:rgba(255,176,32,.1)}
+.statuses input:checked+span.finished{color:var(--done);border-color:var(--done);background:rgba(61,220,132,.1)}
+.statuses input:checked+span.skip{color:var(--txt);border-color:var(--skip);background:rgba(107,114,128,.25)}

@@ -1,9 +1,11 @@
 // WhatToPlay page: rendering and user interaction.
 // All data comes from the backend through api.js.
 import { api } from "./api.js";
+import { openGamePanel } from "./panel.js";
 
 // ---------- state ----------
 let franchises = [];          // from GET /api/franchises, in custom order
+let platforms = [];           // from GET /api/platforms, in display order
 const expanded = new Set();   // franchise ids; collapsed by default on every load
 
 // Column widths are a per-device display preference, kept in this browser.
@@ -57,9 +59,10 @@ function renderGame(g) {
     <td class="t-title"><div class="title-wrap"><span class="gmark">▹</span>
       <input data-field="title" value="${esc(g.title)}" aria-label="Title">
       <a class="bl" href="${esc(g.backloggd_link)}" target="_blank" rel="noopener" title="Open on Backloggd"><img src="https://backloggd.com/favicon.ico" alt="Backloggd"></a>
+      <button class="open-panel" data-action="open-panel" title="All details">✎</button>
     </div></td>
-    <td class="t-rel">${esc(g.released)}</td>
-    <td><div class="plat-cell">${chips}</div></td>
+    <td class="t-rel" data-action="open-panel" title="Edit release date">${esc(g.released)}</td>
+    <td><div class="plat-cell" data-action="open-panel" title="Edit platforms">${chips}</div></td>
     <td class="t-playon"><select data-field="play_on" aria-label="Play on" ${g.platforms.length ? "" : "disabled"}>${playOnOptions}</select></td>
     <td><select data-field="status" class="status ${g.status}" aria-label="Status">${statusOptions}</select></td>
     <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes"></td>
@@ -220,13 +223,16 @@ document.addEventListener("click", (event) => {
     target.closest(".fr").classList.toggle("open");   // no full re-render needed
   } else if (action === "dismiss") {
     $("problem").hidden = true;
+  } else if (action === "open-panel") {
+    const { franchise, game } = findGame(Number(target.closest("[data-game]").dataset.game));
+    if (game) openGamePanel({ game, franchise, franchises, platforms });
   }
 });
 
 // ---------- start ----------
 async function load() {
   try {
-    franchises = await api.franchises();
+    [franchises, platforms] = await Promise.all([api.franchises(), api.platforms()]);
     render();
   } catch (err) {
     $("app").innerHTML = "";
