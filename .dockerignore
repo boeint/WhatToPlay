@@ -1,0 +1,14 @@
+# Only what the image needs goes into it: no secrets, data, history or local tools.
+.git
+.github
+.claude
+.venv
+venv
+.env
+.env.*
+data/
+legacy/
+unraid/
+**/__pycache__
+*.pyc
+*.md

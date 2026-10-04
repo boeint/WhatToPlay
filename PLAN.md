@@ -9,7 +9,7 @@
 | Schema changes | Alembic migrations |
 | Frontend | Plain HTML / CSS / JS (no framework, no build step), ported from `legacy/backlog.html` |
 | Access | LAN-only, no login. Remote access via Unraid's VPN (Tailscale / WireGuard). |
-| Deployment | Docker Compose (Compose Manager plugin) on Unraid; server pulls the private repo and builds the image |
+| Deployment | GitHub Actions builds and tests the image and publishes it to ghcr.io (public). Installed on Unraid from the web UI with a template (`unraid/whattoplay.xml`) — no terminal. Pushes to `main` publish `:dev`; release tags (`v1.2.3`) publish `:latest`, which the server follows. |
 | Data | Kept out of git. Initial data loaded through the app's own Import feature. |
 | Portability | Nothing about a specific server lives in the code. Anyone with Docker and a MariaDB server can install it. |
 
@@ -17,16 +17,14 @@
 
 | Kind of setting | Where it lives | Examples |
 |---|---|---|
-| Infrastructure | Environment variables, set in `.env` next to `docker-compose.yml` (never committed; the repo ships `.env.example` with placeholders) | Database host, port, name, user, password; the port the app listens on; the Docker network shared with MariaDB |
+| Infrastructure | Container environment variables: prompted by the Unraid template (or `.env` for local development / docker compose) | Database host, port, name, user, password. Port and network are chosen in Unraid's form. `TZ` is passed by Unraid automatically. |
 | App preferences | Settings page in the app, stored in the database | RomM URL and API key (later) |
 
-Installation flow:
-1. Create a database and user on your MariaDB (README gives the SQL; the app never needs MariaDB's admin password).
-2. Copy `.env.example` to `.env` and fill it in.
-3. `docker compose up -d` — the app creates or updates its own tables on startup.
-4. Open the app — an empty database shows a first-run screen: **Import a backup** or **Start empty**.
-
-One compose file is provided, for connecting to an existing MariaDB server.
+Installation flow (Unraid, all in the web UI):
+1. Create a database and user on your MariaDB (README gives the SQL, which can be run in Adminer; the app never needs MariaDB's admin password).
+2. Docker ▸ Add Container ▸ Template **WhatToPlay**; pick the network your MariaDB is on; fill in the database password.
+3. The container waits for the database, creates or updates its own tables, then starts.
+4. Open the app — an empty database shows a first-run screen: **Import a backup** or **start with a new franchise**.
 
 ## Phase 0 — Tools & repo
 - [x] Install Git, GitHub CLI, Python 3.14
@@ -79,10 +77,14 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [x] Re-check every feature in HANDOFF §2 (the legacy app is inspiration, not the spec: improve where it makes sense)
 
 ## Phase 5 — Deploy to Unraid
-- [ ] `Dockerfile`, `docker-compose.yml`, `.env.example`
-- [ ] Run database migrations automatically on startup; first-run screen (Import a backup / Start empty)
-- [ ] Compose Manager, read-only deploy key, clone, `.env`, Compose Up
+- [x] `Dockerfile` (non-root, health check), start script (waits for the database, runs migrations), first-run screen
+- [x] GitHub Actions: build, test against a throwaway MariaDB, publish to ghcr.io
+- [x] Unraid template `unraid/whattoplay.xml`
+- [ ] Make the repository and the image public; add a license
+- [ ] First release `v1.0.0` → `:latest`
+- [ ] Unraid: export the flash share, copy the template, Add Container from the template
 - [ ] Import real data into `whattoplay`; test from phone and PC
+- [ ] `docker-compose.yml` example for installs outside Unraid
 
 ## Phase 6 — Safety net & docs
 - [ ] Database backups (Appdata Backup plugin or scheduled dump)

@@ -174,7 +174,9 @@ function render() {
   app.classList.toggle("custom-sort", sortMode === "custom" && !isFiltering());
   app.innerHTML = html || (franchises.length
     ? `<div class="empty">No matches. <button class="btn-ghost" data-action="reset-filters">Reset</button></div>`
-    : `<div class="empty">No franchises yet. Add one with “+ Franchise”.</div>`);
+    : `<div class="empty"><p>Your backlog is empty.</p>
+        <button class="btn-primary" data-action="import">Import a backup</button>
+        <button data-action="add-franchise">Start with a new franchise</button></div>`);
   renderStats();
 }
 

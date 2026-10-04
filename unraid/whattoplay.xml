@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>WhatToPlay</Name>
+  <Repository>ghcr.io/boeint/whattoplay:latest</Repository>
+  <Registry>https://github.com/boeint/WhatToPlay/pkgs/container/whattoplay</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/boeint/WhatToPlay/issues</Support>
+  <Project>https://github.com/boeint/WhatToPlay</Project>
+  <Overview>A video-game backlog manager. Games are grouped into franchises and kept in play order, and "What to play next" suggests the next game of a random franchise.&#13;
+&#13;
+Requires a MariaDB (or MySQL) server with a database and a user for WhatToPlay. Set Network Type to the network your MariaDB container is on, so DB_HOST can be its container name.&#13;
+&#13;
+On first start the app creates its tables, then offers to import a backup.</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/boeint/WhatToPlay/main/unraid/whattoplay.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/boeint/WhatToPlay/main/app/static/icon.png</Icon>
+  <Requires>An existing MariaDB / MySQL server, with a database and a user created for WhatToPlay (see the project page for the SQL, which can be run in Adminer).</Requires>
+  <Config Name="Web UI port" Target="8000" Default="8095" Mode="tcp" Description="Port the app is reached on, e.g. http://your-server:8095" Type="Port" Display="always" Required="true" Mask="false">8095</Config>
+  <Config Name="DB_HOST" Target="DB_HOST" Default="mariadb" Mode="" Description="Database server: the MariaDB container's name when both are on the same custom network (choose it in Network Type above), otherwise the server's IP address" Type="Variable" Display="always" Required="true" Mask="false">mariadb</Config>
+  <Config Name="DB_PORT" Target="DB_PORT" Default="3306" Mode="" Description="Database port" Type="Variable" Display="always" Required="true" Mask="false">3306</Config>
+  <Config Name="DB_NAME" Target="DB_NAME" Default="whattoplay" Mode="" Description="Name of the database created for WhatToPlay" Type="Variable" Display="always" Required="true" Mask="false">whattoplay</Config>
+  <Config Name="DB_USER" Target="DB_USER" Default="whattoplay" Mode="" Description="Database user created for WhatToPlay" Type="Variable" Display="always" Required="true" Mask="false">whattoplay</Config>
+  <Config Name="DB_PASSWORD" Target="DB_PASSWORD" Default="" Mode="" Description="That user's password" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+</Container>

@@ -9,8 +9,10 @@ from pathlib import Path
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError, OperationalError
 
+from app.db import get_engine
 from app.routers import backup, franchises, games, platforms
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -21,6 +23,18 @@ app.include_router(platforms.router)
 app.include_router(franchises.router)
 app.include_router(games.router)
 app.include_router(backup.router)
+
+
+@app.get("/api/health", tags=["health"])
+def health():
+    """Used by Docker / Unraid to show whether the app is healthy."""
+    try:
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except OperationalError:
+        return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
+    return {"status": "ok", "database": "ok"}
+
 
 # The web page (index.html, styles.css, app.js...) at "/". Mounted last so the
 # /api/... routes above take precedence.
