@@ -4,12 +4,23 @@ These are separate from the database tables in app/models.py: the API decides
 what to expose, independently of how data is stored.
 """
 import calendar
-from datetime import date
+import unicodedata
+from datetime import date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app import backloggd
 from app.models import Franchise, Game, Status
+
+
+def name_key(name: str) -> str:
+    """Compare names the way the database does: ignoring case and accents.
+
+    The database collation (utf8mb4_unicode_ci) treats "Pokemon" and "Pokémon" as equal.
+    """
+    decomposed = unicodedata.normalize("NFKD", name.strip())
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
 
 
 def format_release(year: int | None, month: int | None, note: str | None) -> str:
@@ -143,7 +154,7 @@ class _GameRules(BaseModel):
     @field_validator("platforms", mode="after", check_fields=False)
     @classmethod
     def no_duplicate_platforms(cls, value: list[str]) -> list[str]:
-        if len({p.lower() for p in value}) != len(value):
+        if len({name_key(p) for p in value}) != len(value):
             raise ValueError("a platform is listed twice")
         return value
 
@@ -159,6 +170,30 @@ class GameCreate(_GameRules):
     platforms: list[str] = []         # platform names, in order
     links: list[LinkIn] = []
     backloggd_url: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def consistent(self) -> "GameCreate":
+        if self.release_month is not None and self.release_year is None:
+            raise ValueError("release_month needs a release_year")
+        if self.finished_on is not None and self.status != Status.FINISHED:
+            raise ValueError("finished_on can only be set on a finished game")
+        return self
+
+    @classmethod
+    def from_model(cls, game: Game) -> "GameCreate":
+        """A stored game as input data (used by export)."""
+        return cls(
+            title=game.title,
+            release_year=game.release_year,
+            release_month=game.release_month,
+            release_note=game.release_note,
+            status=game.status,
+            finished_on=game.finished_on,
+            notes=game.notes,
+            platforms=[gp.platform.name for gp in game.platforms],
+            links=[LinkIn(label=link.label, url=link.url) for link in game.links],
+            backloggd_url=game.backloggd_url,
+        )
 
 
 class GameUpdate(_GameRules):
@@ -178,3 +213,49 @@ class GameUpdate(_GameRules):
     platforms: list[str] = None
     links: list[LinkIn] = None
     backloggd_url: str | None = Field(None, max_length=500)
+
+
+# --- Export / import file ------------------------------------------------------
+# Versioned, no database ids: order is the order of the lists, and platforms and
+# franchises are referred to by name, so a file can be imported into any install.
+
+class ExportFranchise(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=200)
+    notes: str = ""
+    games: list[GameCreate] = []      # in play order
+
+
+class ExportFile(BaseModel):
+    format: Literal["whattoplay-export"]
+    version: Literal[1]
+    exported_at: datetime | None = None
+    platforms: list[str]              # every platform, in display order
+    franchises: list[ExportFranchise] # in custom order
+
+    @model_validator(mode="after")
+    def consistent(self) -> "ExportFile":
+        if any(not p.strip() or len(p) > 50 for p in self.platforms):
+            raise ValueError("platform names must be 1-50 characters")
+        if len({name_key(p) for p in self.platforms}) != len(self.platforms):
+            raise ValueError("a platform is listed twice in 'platforms'")
+        seen: dict[str, str] = {}
+        for franchise in self.franchises:
+            key = name_key(franchise.name)
+            if key in seen:
+                raise ValueError(
+                    f"franchise names '{seen[key]}' and '{franchise.name}' count as the same "
+                    "(names are compared ignoring case and accents)"
+                )
+            seen[key] = franchise.name
+        known = {name_key(p) for p in self.platforms}
+        for fi, franchise in enumerate(self.franchises):
+            for gi, game in enumerate(franchise.games):
+                unknown = [p for p in game.platforms if name_key(p) not in known]
+                if unknown:
+                    raise ValueError(
+                        f"franchises.{fi}.games.{gi} ('{game.title}'): "
+                        f"platform not in 'platforms': {', '.join(unknown)}"
+                    )
+        return self

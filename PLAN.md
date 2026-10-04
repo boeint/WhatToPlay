@@ -58,8 +58,8 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - **`sort_order`**: rows have no inherent order in a database, so play order and display order are stored explicitly.
 
 ## Phase 2 — Backend (FastAPI, run locally against `whattoplay_dev`)
-- [ ] Read everything; create / update / delete franchises and games; reorder
-- [ ] Export / Import in a format designed for the new app (not the legacy export shape)
+- [x] Read everything; create / update / delete franchises and games; reorder
+- [x] Export / Import in a format designed for the new app (not the legacy export shape)
 - [ ] Try every endpoint from the `/docs` page
 
 ## Phase 3 — Initial data

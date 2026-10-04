@@ -35,12 +35,22 @@ def next_sort_order(session: Session, franchise_id: int) -> int:
     return (last or 0) + 1
 
 
-def platform_rows(session: Session, names: list[str]) -> list[GamePlatform]:
-    """Turn platform names into game_platforms rows, keeping the given order."""
-    found = {
-        p.name.lower(): p
-        for p in session.scalars(select(Platform).where(Platform.name.in_(names)))
-    }
+def platforms_by_name(session: Session, names: list[str] | None = None) -> dict[str, Platform]:
+    """Platforms keyed by lower-case name (all of them, or only the given names)."""
+    query = select(Platform)
+    if names is not None:
+        query = query.where(Platform.name.in_(names))
+    return {p.name.lower(): p for p in session.scalars(query)}
+
+
+def platform_rows(
+    session: Session, names: list[str], known: dict[str, Platform] | None = None
+) -> list[GamePlatform]:
+    """Turn platform names into game_platforms rows, keeping the given order.
+
+    `known` (from platforms_by_name) avoids a database query per game during import.
+    """
+    found = known if known is not None else platforms_by_name(session, names)
     unknown = [n for n in names if n.lower() not in found]
     if unknown:
         raise invalid(f"Unknown platform: {', '.join(unknown)}")
@@ -50,13 +60,15 @@ def platform_rows(session: Session, names: list[str]) -> list[GamePlatform]:
     ]
 
 
-def apply_fields(session: Session, game: Game, fields: dict) -> None:
-    """Copy validated input onto a game (used by create and update)."""
+def apply_fields(
+    session: Session, game: Game, fields: dict, known: dict[str, Platform] | None = None
+) -> None:
+    """Copy validated input onto a game (used by create, update and import)."""
     old_status = game.status
     date_sent = "finished_on" in fields
 
     if "platforms" in fields:
-        game.platforms = platform_rows(session, fields.pop("platforms"))
+        game.platforms = platform_rows(session, fields.pop("platforms"), known)
     if "links" in fields:
         game.links = [
             GameLink(label=link["label"], url=link["url"], sort_order=i)
