@@ -6,7 +6,7 @@ from app.deps import SessionDep
 from app.models import Franchise, Game, GamePlatform
 from app.schemas import FranchiseCreate, FranchiseOut, FranchiseUpdate
 
-router = APIRouter(prefix="/api/franchises", tags=["franchises"])
+router = APIRouter(tags=["franchises"])
 
 # Load each franchise's games, their platforms and links in a few bulk queries
 # instead of one query per franchise and per game.
@@ -36,20 +36,33 @@ def check_name_free(session: Session, name: str, except_id: int | None = None) -
         raise HTTPException(status.HTTP_409_CONFLICT, f"A franchise named '{name}' already exists")
 
 
-@router.get("", response_model=list[FranchiseOut])
+def check_same_ids(sent: list[int], expected: set[int], what: str) -> None:
+    """A new order must list every existing item exactly once."""
+    if len(sent) != len(set(sent)):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"An id appears twice in the {what} order")
+    missing, unknown = expected - set(sent), set(sent) - expected
+    if missing or unknown:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"The {what} order must list every {what} exactly once "
+            f"(missing: {sorted(missing) or 'none'}, unknown: {sorted(unknown) or 'none'})",
+        )
+
+
+@router.get("/api/franchises", response_model=list[FranchiseOut])
 def list_franchises(session: SessionDep):
     """All franchises in order, each with its games in play order."""
     query = select(Franchise).order_by(Franchise.sort_order).options(*WITH_GAMES)
     return [FranchiseOut.from_model(f) for f in session.scalars(query)]
 
 
-@router.get("/{franchise_id}", response_model=FranchiseOut)
+@router.get("/api/franchises/{franchise_id}", response_model=FranchiseOut)
 def get_franchise(franchise_id: int, session: SessionDep):
     """One franchise with its games."""
     return FranchiseOut.from_model(get_franchise_or_404(session, franchise_id))
 
 
-@router.post("", response_model=FranchiseOut, status_code=status.HTTP_201_CREATED)
+@router.post("/api/franchises", response_model=FranchiseOut, status_code=status.HTTP_201_CREATED)
 def create_franchise(data: FranchiseCreate, session: SessionDep):
     """Add a franchise at the end of the list."""
     check_name_free(session, data.name)
@@ -60,7 +73,7 @@ def create_franchise(data: FranchiseCreate, session: SessionDep):
     return FranchiseOut.from_model(get_franchise_or_404(session, franchise.id))
 
 
-@router.patch("/{franchise_id}", response_model=FranchiseOut)
+@router.patch("/api/franchises/{franchise_id}", response_model=FranchiseOut)
 def update_franchise(franchise_id: int, data: FranchiseUpdate, session: SessionDep):
     """Change a franchise's name and/or notes. Only the fields sent are changed."""
     franchise = get_franchise_or_404(session, franchise_id)
@@ -73,10 +86,33 @@ def update_franchise(franchise_id: int, data: FranchiseUpdate, session: SessionD
     return FranchiseOut.from_model(get_franchise_or_404(session, franchise_id))
 
 
-@router.delete("/{franchise_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/api/franchises/{franchise_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_franchise(franchise_id: int, session: SessionDep):
     """Delete a franchise and all its games."""
     franchise = get_franchise_or_404(session, franchise_id)
     session.delete(franchise)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/api/franchise-order", status_code=status.HTTP_204_NO_CONTENT)
+def set_franchise_order(franchise_ids: list[int], session: SessionDep):
+    """Save the custom franchise order: every franchise id, in the new order."""
+    franchises = {f.id: f for f in session.scalars(select(Franchise))}
+    check_same_ids(franchise_ids, set(franchises), "franchise")
+    for position, franchise_id in enumerate(franchise_ids, start=1):
+        franchises[franchise_id].sort_order = position
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/api/franchises/{franchise_id}/game-order", response_model=FranchiseOut)
+def set_game_order(franchise_id: int, game_ids: list[int], session: SessionDep):
+    """Save a franchise's play order: every game id of that franchise, in the new order."""
+    franchise = get_franchise_or_404(session, franchise_id)
+    games = {g.id: g for g in franchise.games}
+    check_same_ids(game_ids, set(games), "game")
+    for position, game_id in enumerate(game_ids, start=1):
+        games[game_id].sort_order = position
+    session.commit()
+    return FranchiseOut.from_model(get_franchise_or_404(session, franchise_id))
