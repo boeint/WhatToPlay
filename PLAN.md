@@ -36,9 +36,26 @@ One compose file is provided, for connecting to an existing MariaDB server.
 
 ## Phase 1 — Database
 - [x] Find the MariaDB container and its Docker network on Unraid
-- [ ] Create `whattoplay` and `whattoplay_dev` databases and a `whattoplay` user (admin password typed by the user, never stored in the repo)
-- [ ] Tables: `franchises`, `games`, `game_platforms`, `game_links` — each with explicit `sort_order`
-- [ ] First Alembic migration
+- [x] Create `whattoplay` and `whattoplay_dev` databases, each with its own user that can only access that database
+- [x] Design the tables (below)
+- [ ] Python project setup (virtual environment, dependencies, config from environment variables)
+- [ ] SQLAlchemy models + first Alembic migration, applied to `whattoplay_dev`
+
+### Tables
+
+| Table | Columns | Notes |
+|---|---|---|
+| `platforms` | id, name, sort_order | Initial list from the legacy app. A RomM platform code can be added later. |
+| `franchises` | id, name, notes, sort_order, created_at, updated_at | |
+| `games` | id, franchise_id, title, release_year, release_month, release_note, status, finished_on, notes, backloggd_url, sort_order, created_at, updated_at | Deleting a franchise deletes its games |
+| `game_platforms` | game_id, platform_id, sort_order | One row per platform of a game |
+| `game_links` | id, game_id, label, url, sort_order | One row per link |
+
+- **Release date** is structured: `release_year` + optional `release_month` + optional `release_note` ("TBA", "Early Access"). Displayed as `Aug 2007`, `1998`, `2025 (Early Access)`.
+- **Status** is limited to `unplayed`, `playing`, `finished`, `skip`.
+- **`finished_on`**: set to today when a game becomes finished (if empty); editable by hand; cleared when the game leaves finished.
+- **`backloggd_url`**: empty means the link is generated from the title.
+- **`sort_order`**: rows have no inherent order in a database, so play order and display order are stored explicitly.
 
 ## Phase 2 — Backend (FastAPI, run locally against `whattoplay_dev`)
 - [ ] Read everything; create / update / delete franchises and games; reorder
