@@ -17,7 +17,7 @@ from app.routers import backup, franchises, games, platforms
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="WhatToPlay", version="0.1.0")
+app = FastAPI(title="WhatToPlay", version="1.0.0")
 
 app.include_router(platforms.router)
 app.include_router(franchises.router)

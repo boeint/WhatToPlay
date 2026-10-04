@@ -80,11 +80,12 @@ Installation flow (Unraid, all in the web UI):
 - [x] `Dockerfile` (non-root, health check), start script (waits for the database, runs migrations), first-run screen
 - [x] GitHub Actions: build, test against a throwaway MariaDB, publish to ghcr.io
 - [x] Unraid template `unraid/whattoplay.xml`
-- [ ] Make the repository and the image public; add a license
-- [ ] First release `v1.0.0` → `:latest`
+- [x] Make the repository public (MIT license, README with install instructions)
+- [x] Make the image public (GitHub ▸ package settings ▸ Change visibility; no API for it)
+- [x] First release `v1.0.0` → `:latest`
 - [ ] Unraid: export the flash share, copy the template, Add Container from the template
 - [ ] Import real data into `whattoplay`; test from phone and PC
-- [ ] `docker-compose.yml` example for installs outside Unraid
+- [x] `docker-compose.yml` example for installs outside Unraid
 
 ## Phase 6 — Safety net & docs
 - [ ] Database backups (Appdata Backup plugin or scheduled dump)
