@@ -38,7 +38,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [x] Find the MariaDB container and its Docker network on Unraid
 - [x] Create `whattoplay` and `whattoplay_dev` databases, each with its own user that can only access that database
 - [x] Design the tables (below)
-- [ ] Python project setup (virtual environment, dependencies, config from environment variables)
+- [x] Python project setup (virtual environment, dependencies, config from environment variables)
 - [ ] SQLAlchemy models + first Alembic migration, applied to `whattoplay_dev`
 
 ### Tables
