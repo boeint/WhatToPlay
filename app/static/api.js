@@ -48,4 +48,6 @@ export const api = {
   createGame: (franchiseId, data) => request("POST", `/api/franchises/${franchiseId}/games`, data),
   updateGame: (id, changes) => request("PATCH", `/api/games/${id}`, changes),
   deleteGame: (id) => request("DELETE", `/api/games/${id}`),
+  setGameOrder: (franchiseId, gameIds) => request("PUT", `/api/franchises/${franchiseId}/game-order`, gameIds),
+  setFranchiseOrder: (franchiseIds) => request("PUT", "/api/franchise-order", franchiseIds),
 };

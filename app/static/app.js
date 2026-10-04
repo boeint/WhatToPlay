@@ -46,7 +46,7 @@ function colgroup() {
 }
 
 // ---------- rendering ----------
-function renderGame(g) {
+function renderGame(g, index, games) {
   const chips = g.platforms.length
     ? g.platforms.map((p) => `<span class="chip">${esc(p)}</span>`).join("")
     : `<span class="ph">+ platform</span>`;
@@ -57,7 +57,7 @@ function renderGame(g) {
   const links = g.links.map((l) =>
     `<a href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.url)}">${esc(l.label)}</a>`).join("");
   return `<tr class="${g.status}" data-game="${g.id}">
-    <td class="t-title"><div class="title-wrap"><span class="gmark">▹</span>
+    <td class="t-title"><div class="title-wrap"><span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
       <input data-field="title" value="${esc(g.title)}" aria-label="Title">
       <a class="bl" href="${esc(g.backloggd_link)}" target="_blank" rel="noopener" title="Open on Backloggd"><img src="https://backloggd.com/favicon.ico" alt="Backloggd"></a>
       <button class="open-panel" data-action="open-panel" title="All details">✎</button>
@@ -68,7 +68,10 @@ function renderGame(g) {
     <td><select data-field="status" class="status ${g.status}" aria-label="Status">${statusOptions}</select></td>
     <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes"></td>
     <td class="t-links">${links}<button class="lnkbtn">＋</button></td>
-    <td><div class="ord"><button title="Up">▲</button><button title="Down">▼</button></div></td>
+    <td><div class="ord">
+      <button data-action="move-up" title="Move up" ${index === 0 ? "disabled" : ""}>▲</button>
+      <button data-action="move-down" title="Move down" ${index === games.length - 1 ? "disabled" : ""}>▼</button>
+    </div></td>
     <td><button class="del" data-action="delete-game" title="Delete game">×</button></td>
   </tr>`;
 }
@@ -138,7 +141,7 @@ function renderStats() {
 // Redraw just one game row and its franchise's summary (keeps focus elsewhere intact).
 function refreshGame(franchise, game) {
   const row = document.querySelector(`tr[data-game="${game.id}"]`);
-  if (row) row.outerHTML = renderGame(game);
+  if (row) row.outerHTML = renderGame(game, franchise.games.indexOf(game), franchise.games);
   refreshSummary(franchise);
 }
 
@@ -277,6 +280,81 @@ async function addFranchise() {
   });
 }
 
+// ---------- reordering ----------
+// Show the new order immediately, then save the complete order. If the server
+// refuses (e.g. a game was deleted on another device), save() reloads the real data.
+async function reorderGames(franchise, gameIds) {
+  const byId = new Map(franchise.games.map((g) => [g.id, g]));
+  franchise.games = gameIds.map((id) => byId.get(id));
+  refreshFranchise(franchise);
+  await save(() => api.setGameOrder(franchise.id, gameIds));
+}
+
+function moveGame(franchise, gameId, step) {
+  const ids = franchise.games.map((g) => g.id);
+  const from = ids.indexOf(gameId);
+  const to = from + step;
+  if (to < 0 || to >= ids.length) return;
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  reorderGames(franchise, ids);
+}
+
+// Drag and drop, only from the ⠿ handle, only within the same franchise.
+let dragging = null;   // { franchiseId, gameId }
+
+function clearDropMarks() {
+  document.querySelectorAll(".drop-before, .drop-after, .dragging")
+    .forEach((el) => el.classList.remove("drop-before", "drop-after", "dragging"));
+}
+
+document.addEventListener("dragstart", (event) => {
+  const handle = event.target.closest?.(".drag-handle");
+  if (!handle) return;
+  const row = handle.closest("tr[data-game]");
+  dragging = {
+    franchiseId: Number(row.closest("[data-franchise]").dataset.franchise),
+    gameId: Number(row.dataset.game),
+  };
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", row.dataset.game);   // required by Firefox
+  event.dataTransfer.setDragImage(row, 20, 20);                  // drag the whole row
+  row.classList.add("dragging");
+});
+
+document.addEventListener("dragover", (event) => {
+  if (!dragging) return;
+  const row = event.target.closest("tr[data-game]");
+  if (!row || Number(row.closest("[data-franchise]").dataset.franchise) !== dragging.franchiseId) return;
+  event.preventDefault();   // "a drop is allowed here"
+  const box = row.getBoundingClientRect();
+  const after = event.clientY > box.top + box.height / 2;
+  document.querySelectorAll(".drop-before, .drop-after")
+    .forEach((el) => el.classList.remove("drop-before", "drop-after"));
+  row.classList.add(after ? "drop-after" : "drop-before");
+});
+
+document.addEventListener("drop", (event) => {
+  if (!dragging) return;
+  const row = event.target.closest("tr[data-game]");
+  if (!row) return;
+  event.preventDefault();
+  const franchise = findFranchise(dragging.franchiseId);
+  const targetId = Number(row.dataset.game);
+  const after = row.classList.contains("drop-after");
+  const ids = franchise.games.map((g) => g.id).filter((id) => id !== dragging.gameId);
+  if (targetId !== dragging.gameId) {
+    ids.splice(ids.indexOf(targetId) + (after ? 1 : 0), 0, dragging.gameId);
+    reorderGames(franchise, ids);
+  }
+  clearDropMarks();
+  dragging = null;
+});
+
+document.addEventListener("dragend", () => {
+  clearDropMarks();
+  dragging = null;
+});
+
 // From the panel in edit mode. Errors are thrown back so the panel can show
 // them and stay open.
 async function saveGameFromPanel(gameId, changes) {
@@ -334,10 +412,12 @@ document.addEventListener("click", (event) => {
     $("problem").hidden = true;
   } else if (action === "add-franchise") {
     addFranchise();
-  } else if (action === "open-panel" || action === "delete-game") {
+  } else if (action === "open-panel" || action === "delete-game" || action.startsWith("move-")) {
     const { franchise, game } = findGame(Number(target.closest("[data-game]").dataset.game));
     if (!game) return;
     if (action === "open-panel") openGame(game, franchise);
+    else if (action === "move-up") moveGame(franchise, game.id, -1);
+    else if (action === "move-down") moveGame(franchise, game.id, +1);
     else confirmDialog(`Delete "${game.title}"?`, "Delete", { danger: true }).then((yes) => {
       if (yes) save(() => deleteGame(game.id));
     });
