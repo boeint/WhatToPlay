@@ -39,7 +39,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [x] Create `whattoplay` and `whattoplay_dev` databases, each with its own user that can only access that database
 - [x] Design the tables (below)
 - [x] Python project setup (virtual environment, dependencies, config from environment variables)
-- [ ] SQLAlchemy models + first Alembic migration, applied to `whattoplay_dev`
+- [x] SQLAlchemy models + first Alembic migration, applied to `whattoplay_dev`
 
 ### Tables
 
