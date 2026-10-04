@@ -70,7 +70,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 ## Phase 4 — Frontend
 - [x] Split into `index.html`, `styles.css`, `app.js`, `api.js`; drop the SEED (step 1: read-only list)
 - [x] Step 2: quick edits in the table (title, status, play on, notes, franchise name/notes), "Saved" indicator, error handling
-- [ ] Step 3: game detail panel (release year/month/TBA, finished date, platforms, notes, links, Backloggd override, move to franchise)
+- [x] Step 3: game detail panel (release year/month/TBA, finished date, platforms, notes, links, Backloggd override, move to franchise)
 - [ ] Step 4: add game (opens the panel), add franchise dialog, in-app delete confirmations, reorder arrows + drag and drop
 - [ ] Step 5: search (incl. notes), status filter, sorts, column resizing
 - [ ] Step 6: "What to play next" picker, skipping TBA games

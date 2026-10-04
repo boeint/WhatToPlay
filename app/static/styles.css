@@ -135,6 +135,10 @@ select.status.skip{color:var(--skip)}
 .panel textarea{width:100%;min-height:90px;resize:vertical}
 .panel select,.panel input[type=url],.panel input[type=text]{width:100%}
 .panel .row select,.panel .row input{width:auto}
+.panel-error{flex:1;align-self:center;color:var(--danger);font-size:13px}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600}
+.btn-danger:hover{background:#e84a4a;border-color:#e84a4a}
+.dialog-text{margin:0;font-size:15px}
 .toggles{display:flex;flex-wrap:wrap;gap:5px}
 .toggles label{cursor:pointer}
 .toggles input{position:absolute;opacity:0;width:0;height:0}

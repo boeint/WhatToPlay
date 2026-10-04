@@ -186,6 +186,32 @@ async function editFranchise(franchiseId, field, value) {
   });
 }
 
+// Called by the detail panel. Errors are thrown back so the panel can show
+// them and stay open.
+async function saveGameFromPanel(gameId, changes) {
+  saveState("Saving…");
+  let updated;
+  try {
+    updated = await api.updateGame(gameId, changes);
+  } catch (err) {
+    saveState("");
+    throw err;
+  }
+  const { franchise, game } = findGame(gameId);
+  if (changes.franchise_id !== undefined && changes.franchise_id !== franchise.id) {
+    // Moved: take it out of the old franchise, add it at the end of the new one.
+    franchise.games = franchise.games.filter((g) => g.id !== gameId);
+    const target = findFranchise(changes.franchise_id);
+    target.games.push(updated);
+    expanded.add(target.id);
+    render();
+  } else {
+    Object.assign(game, updated);
+    refreshGame(franchise, game);
+  }
+  saveState("Saved ✓", "saved");
+}
+
 // ---------- interaction ----------
 // One listener for every editable field: it says what it edits with data-field.
 document.addEventListener("change", (event) => {
@@ -225,7 +251,7 @@ document.addEventListener("click", (event) => {
     $("problem").hidden = true;
   } else if (action === "open-panel") {
     const { franchise, game } = findGame(Number(target.closest("[data-game]").dataset.game));
-    if (game) openGamePanel({ game, franchise, franchises, platforms });
+    if (game) openGamePanel({ game, franchise, franchises, platforms, onSave: saveGameFromPanel });
   }
 });
 

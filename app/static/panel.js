@@ -1,6 +1,7 @@
 // Game detail panel: every field of one game, saved together with "Save".
 // Fields use name="..." (not data-field), so the table's save-on-change
 // listener in app.js ignores them.
+import { confirmDialog } from "./dialog.js";
 
 const panel = document.getElementById("panel");
 const backdrop = document.getElementById("backdrop");
@@ -99,6 +100,7 @@ function render() {
       </div>
     </div>
     <div class="panel-foot">
+      <span class="panel-error" data-out="error" role="alert"></span>
       <button type="button" class="btn-ghost" data-panel="close">Cancel</button>
       <button type="button" class="btn-primary" data-panel="save">Save</button>
     </div>`;
@@ -124,6 +126,93 @@ function refreshDependentFields() {
   select.disabled = ticked.length === 0;
 }
 
+// ---------- reading the form ----------
+// The form's values, in the same shape the API uses.
+function readForm() {
+  const field = (name) => panel.querySelector(`[name="${name}"]`);
+  const status = panel.querySelector('[name="status"]:checked').value;
+  const links = [...panel.querySelectorAll(".link-row")]
+    .map((row) => ({
+      label: row.querySelector('[name="link-label"]').value.trim(),
+      url: row.querySelector('[name="link-url"]').value.trim(),
+    }))
+    .filter((link) => link.label || link.url)                 // ignore fully empty rows
+    .map((link) => ({ label: link.label || "link", url: link.url }));
+  return {
+    title: field("title").value.trim(),
+    release_year: Number(field("release_year").value) || null,
+    release_month: Number(field("release_month").value) || null,
+    release_tba: field("release_tba").checked,
+    status,
+    finished_on: status === "finished" ? field("finished_on").value || null : null,
+    platforms: [...panel.querySelectorAll('[name="platform"]:checked')].map((c) => c.value),
+    play_on: field("play_on").value || null,
+    notes: field("notes").value,
+    links,
+    backloggd_url: field("backloggd_url").value.trim() || null,
+    franchise_id: Number(field("franchise_id").value),
+  };
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// Only the fields that differ from the game as loaded.
+function changedFields() {
+  const g = current.game;
+  const form = readForm();
+  const before = {
+    ...g,
+    // The form lists platforms in the standard order; compare in that order too,
+    // so an unchanged set doesn't count as a change.
+    platforms: current.platforms.map((p) => p.name).filter((name) => g.platforms.includes(name)),
+    links: g.links.map(({ label, url }) => ({ label, url })),
+    franchise_id: current.franchise.id,
+  };
+  const changes = {};
+  for (const [key, value] of Object.entries(form)) {
+    if (!same(value, before[key] ?? null)) changes[key] = value;
+  }
+  // Becoming finished with no date given: let the server set today's date.
+  if (form.status === "finished" && g.status !== "finished" && form.finished_on === null) {
+    delete changes.finished_on;
+  }
+  // Leaving "finished": the server clears the date itself.
+  if (form.status !== "finished") delete changes.finished_on;
+  return changes;
+}
+
+// Mistakes we can spot without asking the server.
+function problems(form) {
+  if (!form.title) return "The title can't be empty.";
+  if (form.release_month && !form.release_year) return "A release month needs a year.";
+  if (form.links.some((link) => !link.url)) return "Each link needs a URL.";
+  if (form.links.some((link) => !/^https?:\/\//.test(link.url))) return "Links must start with http:// or https://";
+  if (form.backloggd_url && !/^https?:\/\//.test(form.backloggd_url)) return "The Backloggd page must start with http:// or https://";
+  return null;
+}
+
+function showError(message) {
+  panel.querySelector('[data-out="error"]').textContent = message;
+}
+
+async function save(button) {
+  const problem = problems(readForm());
+  if (problem) return showError(problem);
+  const changes = changedFields();
+  if (!Object.keys(changes).length) return closePanel();   // nothing to save
+  button.disabled = true;
+  button.textContent = "Saving…";
+  try {
+    await current.onSave(current.game.id, changes);
+    closePanel();
+  } catch (err) {
+    showError(`Not saved: ${err.message}`);   // keep the panel open with what was typed
+    button.disabled = false;
+    button.textContent = "Save";
+  }
+}
+
+// ---------- opening / closing ----------
 export function openGamePanel(options) {
   current = options;
   render();
@@ -138,6 +227,13 @@ export function closePanel() {
   current = null;
 }
 
+// Cancel / Esc / click outside: ask first if there are unsaved changes.
+async function requestClose() {
+  if (Object.keys(changedFields()).length &&
+      !(await confirmDialog("Discard your unsaved changes?", "Discard", { danger: true }))) return;
+  closePanel();
+}
+
 export const isPanelOpen = () => !panel.hidden;
 
 // ---------- listeners (set up once) ----------
@@ -148,17 +244,20 @@ panel.addEventListener("click", (event) => {
   const button = event.target.closest("[data-panel]");
   if (!button) return;
   const action = button.dataset.panel;
-  if (action === "close") closePanel();
+  if (action === "close") requestClose();
   else if (action === "add-link") {
     panel.querySelector('[data-out="links"]').insertAdjacentHTML("beforeend", linkRow());
     panel.querySelector('[data-out="links"] .link-row:last-child input').focus();
   } else if (action === "remove-link") button.closest(".link-row").remove();
-  else if (action === "save") {
-    button.textContent = "Saving comes in the next step";
-  }
+  else if (action === "save") save(button);
 });
 
-backdrop.addEventListener("click", closePanel);
+// Ctrl+Enter (Cmd+Enter on a Mac) saves from anywhere in the panel.
+panel.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) save(panel.querySelector('[data-panel="save"]'));
+});
+
+backdrop.addEventListener("click", requestClose);
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && isPanelOpen()) closePanel();
+  if (event.key === "Escape" && isPanelOpen()) requestClose();
 });
