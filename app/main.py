@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from app import backups
 from app.backups import backup_loop, backup_status
 from app.db import get_engine
+from app.mcp_server import AISwitch, mcp, mcp_asgi_app
 from app.routers import backup, franchises, games, platforms, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -24,9 +25,10 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Runs while the app is up: starts the daily backup task, stops it on shutdown."""
+    """Runs while the app is up: the daily backup task and the MCP session manager."""
     task = asyncio.create_task(backup_loop())
-    yield
+    async with mcp.session_manager.run():   # a mounted app's own start-up never runs
+        yield
     task.cancel()
 
 
@@ -62,6 +64,9 @@ def health():
         },
     }
 
+
+# The AI assistant's MCP endpoint (refused unless switched on in Settings).
+app.mount("/mcp", AISwitch(mcp_asgi_app), name="mcp")
 
 # The web page (index.html, styles.css, app.js...) at "/". Mounted last so the
 # /api/... routes above take precedence.

@@ -73,6 +73,22 @@ jobs:
           curl -fsS -X POST "http://localhost:8000/api/backups/$name/restore?replace=true" | grep -q '"restored"'
           test "$(stat -c %u:%g "$RUNNER_TEMP"/backups/whattoplay-before-restore-*.json)" = "99:100"
           curl -fsS http://localhost:8000/api/health | grep -q '"enabled":true'
+          # MCP: refused while the AI switch is off (the default)...
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8000/mcp/ \
+            -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
+          test "$code" = "403"
+          # ...and usable by a real MCP client once switched on
+          curl -fsS -X PATCH http://localhost:8000/api/settings -H 'Content-Type: application/json' -d '{"ai_enabled":true}' > /dev/null
+          docker exec app python -c "
+          import anyio
+          from mcp.client import Client
+          async def main():
+              async with Client('http://127.0.0.1:8000/mcp/') as c:
+                  names = sorted(t.name for t in (await c.list_tools()).tools)
+                  print('MCP tools:', names)
+                  assert 'add_franchise' in names and 'get_instructions' in names
+          anyio.run(main)"
           echo "all checks passed"
 
       - name: Show the app's log
