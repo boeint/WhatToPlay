@@ -99,7 +99,7 @@ shows the proposed list for approval, then writes it through the app's tools.
 - [x] MCP server at `/mcp` (official Python SDK v2, inside the app): get_instructions, list_franchises, get_franchise, search_games, add_franchise, add_games, update_game — reusing the app's validation
 - [x] Settings: AI assistant switch (off by default; `/mcp` refuses everything when off), "AI instructions" text, platform manager (add / rename / reorder / delete when unused)
 - [x] Games the AI decides to skip are still added, with status Skip and a note explaining why (in the instructions)
-- [ ] Release; switch the AI on and add NSO on the server; register the server in Claude Code; first real "add a franchise"
+- [x] Release; switch the AI on and add NSO on the server; register the server in Claude Code; first real "add a franchise" (Call of Duty, 44 games)
 - [ ] Remember each game's metadata source id (e.g. IGDB) for duplicate checks and the TBA date scan
 - Later option: an "Add with AI" box inside the app (Claude API key, works from the phone)
 
