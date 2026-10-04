@@ -49,7 +49,7 @@ jobs:
           done
           echo; echo "--- checks ---"
           curl -fsS http://localhost:8000/api/health | grep -q '"database":"ok"'
-          curl -fsS http://localhost:8000/ | grep -q "WhatToPlay"
+          curl -fsS http://localhost:8000/ | grep -q "<title>What To Play"
           curl -fsS http://localhost:8000/icon.png -o /dev/null
           platforms=$(curl -fsS http://localhost:8000/api/platforms | python3 -c "import sys, json; print(len(json.load(sys.stdin)))")
           test "$platforms" = "31"
