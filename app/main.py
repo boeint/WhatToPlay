@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="WhatToPlay", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="WhatToPlay", version="1.2.0", lifespan=lifespan)
 
 app.include_router(platforms.router)
 app.include_router(franchises.router)

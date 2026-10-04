@@ -56,8 +56,13 @@ you chose). An empty backlog offers to **import a backup** or to start with a ne
   the folder mapped to `/backups` (on Unraid: `/mnt/user/appdata/whattoplay/backups` by default) and
   keeps the newest `BACKUP_KEEP` files. One is also written at start-up if today's is missing.
 - **Manual backup:** the **Export** button downloads the same file.
-- **Restore:** **Import** ▸ choose a backup file. Import replaces everything, after downloading a backup
-  of the current data first; if the file is rejected, nothing is changed.
+- **Status:** the bottom of the page shows the last backup and the next one, or a warning if backups
+  are off or the last one failed.
+- **Restore from the server:** **Restore a backup…** (bottom of the page) lists the backup files; the
+  current data is first saved in the same folder as `whattoplay-before-restore-….json`, so a restore can
+  be undone from the same list.
+- **Restore from a file:** **Import** ▸ choose a backup file (a backup of the current data is downloaded
+  first). If a file is rejected, nothing is changed.
 
 ## Updating
 
