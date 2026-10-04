@@ -89,7 +89,13 @@ class Game(Timestamps, Base):
     backloggd_url: Mapped[str | None] = mapped_column(String(500))  # None = generated from title
     sort_order: Mapped[int]
 
+    # Where the user will play it: one of the game's platforms (or none chosen yet).
+    play_on_id: Mapped[int | None] = mapped_column(
+        ForeignKey("platforms.id", ondelete="SET NULL"), index=True
+    )
+
     franchise: Mapped[Franchise] = relationship(back_populates="games")
+    play_on: Mapped[Platform | None] = relationship(lazy="joined")
     platforms: Mapped[list["GamePlatform"]] = relationship(
         order_by="GamePlatform.sort_order",
         cascade="all, delete-orphan",

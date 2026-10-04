@@ -62,6 +62,7 @@ class GameOut(BaseModel):
     finished_on: date | None
     notes: str
     platforms: list[str]           # platform names, in the game's order
+    play_on: str | None            # where the user will play it: one of `platforms`
     links: list[LinkOut]
     backloggd_url: str | None      # manual override, or None
     backloggd_link: str            # read-only: the page to open (override or generated)
@@ -79,6 +80,7 @@ class GameOut(BaseModel):
             finished_on=game.finished_on,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
+            play_on=game.play_on.name if game.play_on else None,
             links=[LinkOut.model_validate(link) for link in game.links],
             backloggd_url=game.backloggd_url,
             backloggd_link=backloggd.link(game.title, game.backloggd_url),
@@ -171,6 +173,7 @@ class GameCreate(_GameRules):
     finished_on: date | None = None   # left out: set automatically when status is finished
     notes: str = ""
     platforms: list[str] = []         # platform names, in order
+    play_on: str | None = None        # one of `platforms`
     links: list[LinkIn] = []
     backloggd_url: str | None = Field(None, max_length=500)
 
@@ -178,6 +181,8 @@ class GameCreate(_GameRules):
     def consistent(self) -> "GameCreate":
         if self.release_month is not None and self.release_year is None:
             raise ValueError("release_month needs a release_year")
+        if self.play_on is not None and name_key(self.play_on) not in {name_key(p) for p in self.platforms}:
+            raise ValueError("play_on must be one of the game's platforms")
         if self.finished_on is not None and self.status != Status.FINISHED:
             raise ValueError("finished_on can only be set on a finished game")
         return self
@@ -194,6 +199,7 @@ class GameCreate(_GameRules):
             finished_on=game.finished_on,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
+            play_on=game.play_on.name if game.play_on else None,
             links=[LinkIn(label=link.label, url=link.url) for link in game.links],
             backloggd_url=game.backloggd_url,
         )
@@ -214,6 +220,7 @@ class GameUpdate(_GameRules):
     finished_on: date | None = None
     notes: str = None
     platforms: list[str] = None
+    play_on: str | None = None        # null clears it
     links: list[LinkIn] = None
     backloggd_url: str | None = Field(None, max_length=500)
 

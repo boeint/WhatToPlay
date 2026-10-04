@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.deps import SessionDep
 from app.models import Franchise, Game, GameLink, GamePlatform, Platform, Status
-from app.schemas import GameCreate, GameOut, GameUpdate
+from app.schemas import GameCreate, GameOut, GameUpdate, name_key
 
 router = APIRouter(tags=["games"])
 
@@ -66,9 +66,24 @@ def apply_fields(
     """Copy validated input onto a game (used by create, update and import)."""
     old_status = game.status
     date_sent = "finished_on" in fields
+    play_on_sent = "play_on" in fields
+    play_on_name = fields.pop("play_on", None)
 
     if "platforms" in fields:
         game.platforms = platform_rows(session, fields.pop("platforms"), known)
+
+    # play_on must be one of the game's platforms. Sent explicitly: checked.
+    # Not sent, but its platform was just removed from the game: cleared.
+    own = {name_key(gp.platform.name): gp.platform for gp in game.platforms}
+    if play_on_sent:
+        if play_on_name is None:
+            game.play_on = None
+        elif name_key(play_on_name) in own:
+            game.play_on = own[name_key(play_on_name)]
+        else:
+            raise invalid("play_on must be one of the game's platforms")
+    elif game.play_on is not None and name_key(game.play_on.name) not in own:
+        game.play_on = None
     if "links" in fields:
         game.links = [
             GameLink(label=link["label"], url=link["url"], sort_order=i)

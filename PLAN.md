@@ -47,7 +47,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 |---|---|---|
 | `platforms` | id, name, sort_order | Initial list from the legacy app. A RomM platform code can be added later. |
 | `franchises` | id, name, notes, sort_order, created_at, updated_at | |
-| `games` | id, franchise_id, title, release_year, release_month, release_tba, status, finished_on, notes, backloggd_url, sort_order, created_at, updated_at | Deleting a franchise deletes its games |
+| `games` | id, franchise_id, title, release_year, release_month, release_tba, status, finished_on, notes, backloggd_url, play_on_id, sort_order, created_at, updated_at | Deleting a franchise deletes its games |
 | `game_platforms` | game_id, platform_id, sort_order | One row per platform of a game |
 | `game_links` | id, game_id, label, url, sort_order | One row per link |
 
@@ -55,6 +55,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - **Status** is limited to `unplayed`, `playing`, `finished`, `skip`.
 - **`finished_on`**: set to today when a game becomes finished (if empty); editable by hand; cleared when the game leaves finished.
 - **`backloggd_url`**: empty means the link is generated from the title.
+- **Platforms vs Play on**: `game_platforms` lists everywhere the game is available; `play_on_id` is the one you'll play it on (must be one of them, cleared if that platform is removed).
 - **`sort_order`**: rows have no inherent order in a database, so play order and display order are stored explicitly.
 
 ## Phase 2 — Backend (FastAPI, run locally against `whattoplay_dev`)
@@ -67,9 +68,14 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [x] Import into `whattoplay_dev`, verify: 97 franchises, 560 games, 34 finished, 2 playing, 7 TBA, 11 game notes, 1 Backloggd override
 
 ## Phase 4 — Frontend
-- [ ] Split into `index.html`, `styles.css`, `app.js`, `api.js`; drop the SEED
-- [ ] Replace localStorage data saving with API calls (column widths / expanded franchises stay per-device in localStorage)
-- [ ] Phone layout: games shown as compact cards instead of table rows on narrow screens
+- [x] Split into `index.html`, `styles.css`, `app.js`, `api.js`; drop the SEED (step 1: read-only list)
+- [ ] Step 2: quick edits in the table (title, status, notes, franchise name/notes), "Saved" indicator, error handling
+- [ ] Step 3: game detail panel (release year/month/TBA, finished date, platforms, notes, links, Backloggd override, move to franchise)
+- [ ] Step 4: add game (opens the panel), add franchise dialog, in-app delete confirmations, reorder arrows + drag and drop
+- [ ] Step 5: search (incl. notes), status filter, sorts, column resizing
+- [ ] Step 6: "What to play next" picker, skipping TBA games
+- [ ] Step 7: Export / Import buttons, automatic backup before import
+- [ ] Step 8: phone layout (cards, full-screen panel); reload data when returning to the tab
 - [ ] Re-check every feature in HANDOFF §2 (the legacy app is inspiration, not the spec: improve where it makes sense)
 
 ## Phase 5 — Deploy to Unraid
@@ -81,6 +87,15 @@ One compose file is provided, for connecting to an existing MariaDB server.
 ## Phase 6 — Safety net & docs
 - [ ] Database backups (Appdata Backup plugin or scheduled dump)
 - [ ] README: update, restore, run locally
+
+## Phase 7 — AI assistant (MCP)
+Ask Claude (Desktop / Code) "add the Resident Evil franchise": it researches, checks for duplicates,
+shows the proposed list for approval, then writes it through the app's tools.
+- [ ] MCP server exposing tools over the existing API: list/find, get preferences, add franchise with its games (one transaction), update game
+- [ ] "AI instructions" note in a Settings page (platform preferences, what to skip, remakes, DLC…), read by the AI every time
+- [ ] Games the AI decides to skip are still added, with status Skip and a note explaining why
+- [ ] Remember each game's metadata source id (e.g. IGDB) for duplicate checks and the TBA date scan
+- Later option: an "Add with AI" box inside the app (Claude API key, works from the phone)
 
 ## Later (optional)
 - Settings page (app preferences stored in the database)
