@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.deps import SessionDep
 from app.models import Franchise, Game, GamePlatform
+from app.routers.games import apply_fields, platforms_by_name
 from app.schemas import FranchiseCreate, FranchiseOut, FranchiseUpdate
 
 router = APIRouter(tags=["franchises"])
@@ -64,10 +65,18 @@ def get_franchise(franchise_id: int, session: SessionDep):
 
 @router.post("/api/franchises", response_model=FranchiseOut, status_code=status.HTTP_201_CREATED)
 def create_franchise(data: FranchiseCreate, session: SessionDep):
-    """Add a franchise at the end of the list."""
+    """Add a franchise at the end of the list, optionally with its games.
+
+    Everything is created in one transaction: if one game is invalid, nothing is created.
+    """
     check_name_free(session, data.name)
     last = session.scalar(select(func.max(Franchise.sort_order))) or 0
     franchise = Franchise(name=data.name, notes=data.notes, sort_order=last + 1)
+    known = platforms_by_name(session) if data.games else None
+    for position, game_data in enumerate(data.games, start=1):
+        game = Game(sort_order=position)
+        apply_fields(session, game, game_data.model_dump(exclude_unset=True), known)
+        franchise.games.append(game)
     session.add(franchise)
     session.commit()
     return FranchiseOut.from_model(get_franchise_or_404(session, franchise.id))

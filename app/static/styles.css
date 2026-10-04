@@ -139,6 +139,10 @@ select.status.skip{color:var(--skip)}
 .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600}
 .btn-danger:hover{background:#e84a4a;border-color:#e84a4a}
 .dialog-text{margin:0;font-size:15px}
+.dialog-error{color:var(--danger);font-size:13px;margin:10px 0 0;min-height:1em}
+.modal .field input[type=text]{width:100%}
+.panel-foot .del-game{margin-right:auto;color:var(--danger);background:transparent;border-color:transparent}
+.panel-foot .del-game:hover{background:rgba(255,93,93,.12)}
 .toggles{display:flex;flex-wrap:wrap;gap:5px}
 .toggles label{cursor:pointer}
 .toggles input{position:absolute;opacity:0;width:0;height:0}

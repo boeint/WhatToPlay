@@ -109,10 +109,12 @@ class FranchiseOut(BaseModel):
 # not silently ignored.
 
 class FranchiseCreate(BaseModel):
+    """A new franchise, optionally with its games (created together, all or nothing)."""
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     name: str = Field(min_length=1, max_length=200)
     notes: str = ""
+    games: list["GameCreate"] = []    # in play order
 
 
 class FranchiseUpdate(BaseModel):
@@ -271,3 +273,7 @@ class ExportFile(BaseModel):
                         f"platform not in 'platforms': {', '.join(unknown)}"
                     )
         return self
+
+
+# FranchiseCreate refers to GameCreate, which is defined after it.
+FranchiseCreate.model_rebuild()

@@ -9,7 +9,15 @@ const backdrop = document.getElementById("backdrop");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const STATUSES = [["unplayed", "Unplayed"], ["playing", "Playing"], ["finished", "Finished"], ["skip", "Skip"]];
 
-let current = null;   // { game, franchise, franchises, platforms, onSave }
+// { mode: "edit" | "create", game, franchise, franchises, platforms, onSave, onDelete }
+let current = null;
+
+// What a new game starts as, in create mode.
+export const BLANK_GAME = {
+  id: null, title: "", release_year: null, release_month: null, release_tba: false,
+  status: "unplayed", finished_on: null, notes: "", platforms: [], play_on: null,
+  links: [], backloggd_url: null, backloggd_link: "",
+};
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) =>
@@ -30,7 +38,8 @@ const linkRow = (link = { label: "", url: "" }) => `<div class="link-row">
   </div>`;
 
 function render() {
-  const { game: g, franchise, franchises, platforms } = current;
+  const { game: g, franchise, franchises, platforms, mode } = current;
+  const creating = mode === "create";
   const monthOptions = `<option value="">—</option>` +
     MONTHS.map((m, i) => `<option value="${i + 1}" ${g.release_month === i + 1 ? "selected" : ""}>${m}</option>`).join("");
   const statusChoices = STATUSES.map(([value, label]) => `<label>
@@ -43,8 +52,8 @@ function render() {
 
   panel.innerHTML = `
     <div class="panel-head">
-      <div class="kicker">${esc(franchise.name)}</div>
-      <input name="title" value="${esc(g.title)}" maxlength="255" aria-label="Title">
+      <div class="kicker">${creating ? "New game in " : ""}${esc(franchise.name)}</div>
+      <input name="title" value="${esc(g.title)}" maxlength="255" aria-label="Title" placeholder="Title">
     </div>
     <div class="panel-body">
       <div class="field">
@@ -90,19 +99,23 @@ function render() {
         <label for="backloggd_url">Backloggd page</label>
         <input name="backloggd_url" id="backloggd_url" type="url" value="${esc(g.backloggd_url)}"
                placeholder="Leave empty to use the automatic link">
-        <div class="hint">Opens: <a href="${esc(g.backloggd_link)}" target="_blank" rel="noopener">${esc(g.backloggd_link)}</a></div>
+        <div class="hint">${g.backloggd_link
+          ? `Opens: <a href="${esc(g.backloggd_link)}" target="_blank" rel="noopener">${esc(g.backloggd_link)}</a>`
+          : "Empty: the link is generated from the title."}</div>
       </div>
 
       <div class="field">
         <label for="franchise_id">Franchise</label>
         <select name="franchise_id" id="franchise_id">${franchiseOptions}</select>
-        <div class="hint">Moving a game puts it at the end of the other franchise.</div>
+        <div class="hint">${creating ? "The game is added at the end of this franchise."
+                                     : "Moving a game puts it at the end of the other franchise."}</div>
       </div>
     </div>
     <div class="panel-foot">
+      ${creating ? "" : `<button type="button" class="del-game" data-panel="delete">Delete</button>`}
       <span class="panel-error" data-out="error" role="alert"></span>
       <button type="button" class="btn-ghost" data-panel="close">Cancel</button>
-      <button type="button" class="btn-primary" data-panel="save">Save</button>
+      <button type="button" class="btn-primary" data-panel="save">${creating ? "Create" : "Save"}</button>
     </div>`;
   refreshDependentFields();
 }
@@ -200,15 +213,27 @@ async function save(button) {
   if (problem) return showError(problem);
   const changes = changedFields();
   if (!Object.keys(changes).length) return closePanel();   // nothing to save
+  const label = button.textContent;
   button.disabled = true;
   button.textContent = "Saving…";
   try {
-    await current.onSave(current.game.id, changes);
+    await current.onSave(current.game.id, changes);   // id is null when creating
     closePanel();
   } catch (err) {
     showError(`Not saved: ${err.message}`);   // keep the panel open with what was typed
     button.disabled = false;
-    button.textContent = "Save";
+    button.textContent = label;
+  }
+}
+
+async function remove() {
+  const { game, onDelete } = current;
+  if (!(await confirmDialog(`Delete "${game.title}"?`, "Delete", { danger: true }))) return;
+  try {
+    await onDelete(game.id);
+    closePanel();
+  } catch (err) {
+    showError(`Not deleted: ${err.message}`);
   }
 }
 
@@ -250,6 +275,7 @@ panel.addEventListener("click", (event) => {
     panel.querySelector('[data-out="links"] .link-row:last-child input').focus();
   } else if (action === "remove-link") button.closest(".link-row").remove();
   else if (action === "save") save(button);
+  else if (action === "delete") remove();
 });
 
 // Ctrl+Enter (Cmd+Enter on a Mac) saves from anywhere in the panel.

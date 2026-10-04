@@ -1,7 +1,8 @@
 // WhatToPlay page: rendering and user interaction.
 // All data comes from the backend through api.js.
 import { api } from "./api.js";
-import { openGamePanel } from "./panel.js";
+import { confirmDialog, formDialog } from "./dialog.js";
+import { BLANK_GAME, openGamePanel } from "./panel.js";
 
 // ---------- state ----------
 let franchises = [];          // from GET /api/franchises, in custom order
@@ -68,7 +69,7 @@ function renderGame(g) {
     <td class="t-notes"><input data-field="notes" value="${esc(g.notes)}" aria-label="Notes"></td>
     <td class="t-links">${links}<button class="lnkbtn">＋</button></td>
     <td><div class="ord"><button title="Up">▲</button><button title="Down">▼</button></div></td>
-    <td><button class="del" title="Delete game">×</button></td>
+    <td><button class="del" data-action="delete-game" title="Delete game">×</button></td>
   </tr>`;
 }
 
@@ -76,6 +77,7 @@ function renderGame(g) {
 function renderSummary(f) {
   const deck = onDeck(f);
   const total = f.games.length;
+  if (!total) return `<span class="fr-prog">no games yet</span>`;
   return `<span class="fr-prog">${total - remaining(f)}/${total} done</span>` + (deck
     ? `<span class="ondeck" title="Next up">▶ ${esc(deck.title)}</span>`
     : `<span class="fr-prog" style="color:var(--done)">✓ complete</span>`);
@@ -88,6 +90,10 @@ function renderFranchise(f) {
       <span class="caret">▶</span>
       <input class="fr-title" data-field="name" value="${esc(f.name)}" aria-label="Franchise name">
       <span class="fr-summary">${renderSummary(f)}</span>
+      <div class="fr-actions">
+        <button data-action="add-game">+ Game</button>
+        <button class="del" data-action="delete-franchise" title="Delete franchise">🗑</button>
+      </div>
     </div>
     <div class="fr-body">
       <div class="fr-notes"><span class="lbl">Notes</span><textarea data-field="notes" aria-label="Franchise notes">${esc(f.notes)}</textarea></div>
@@ -100,9 +106,17 @@ function renderFranchise(f) {
         <th>Notes<span class="rz" data-col="notes"></span></th>
         <th>Links<span class="rz" data-col="links"></span></th>
         <th></th><th></th>
-      </tr></thead><tbody>${f.games.map(renderGame).join("")}</tbody></table></div>
+      </tr></thead><tbody>${f.games.map(renderGame).join("")}</tbody></table>
+      <div class="fr-foot"><button data-action="add-game">+ Add game to ${esc(f.name)}</button></div></div>
     </div>
   </div>`;
+}
+
+// Redraw one whole franchise block (after adding / deleting games).
+function refreshFranchise(franchise) {
+  const block = document.querySelector(`.fr[data-franchise="${franchise.id}"]`);
+  if (block) block.outerHTML = renderFranchise(franchise);
+  renderStats();
 }
 
 function render() {
@@ -186,17 +200,87 @@ async function editFranchise(franchiseId, field, value) {
   });
 }
 
-// Called by the detail panel. Errors are thrown back so the panel can show
-// them and stay open.
-async function saveGameFromPanel(gameId, changes) {
+// Run a request with the "Saving…" indicator; errors are thrown back to the
+// caller (the panel or a dialog shows them and stays open).
+async function withIndicator(request) {
   saveState("Saving…");
-  let updated;
   try {
-    updated = await api.updateGame(gameId, changes);
+    const result = await request();
+    saveState("Saved ✓", "saved");
+    return result;
   } catch (err) {
     saveState("");
     throw err;
   }
+}
+
+function openGame(game, franchise) {
+  openGamePanel({
+    mode: "edit", game, franchise, franchises, platforms,
+    onSave: saveGameFromPanel, onDelete: deleteGame,
+  });
+}
+
+function openNewGame(franchise) {
+  openGamePanel({
+    mode: "create", game: { ...BLANK_GAME }, franchise, franchises, platforms,
+    onSave: (_id, data) => createGame(franchise, data),
+  });
+}
+
+// From the panel in create mode: `data` holds the filled-in fields.
+async function createGame(franchise, data) {
+  const target = findFranchise(data.franchise_id ?? franchise.id);
+  delete data.franchise_id;                       // it's in the URL instead
+  const created = await withIndicator(() => api.createGame(target.id, data));
+  target.games.push(created);
+  expanded.add(target.id);
+  refreshFranchise(target);
+}
+
+async function deleteGame(gameId) {
+  const { franchise } = findGame(gameId);
+  await withIndicator(() => api.deleteGame(gameId));
+  franchise.games = franchise.games.filter((g) => g.id !== gameId);
+  refreshFranchise(franchise);
+}
+
+async function deleteFranchise(franchise) {
+  const count = franchise.games.length;
+  const what = count ? `"${franchise.name}" and its ${count} game${count === 1 ? "" : "s"}` : `"${franchise.name}"`;
+  if (!(await confirmDialog(`Delete ${what}?`, "Delete", { danger: true }))) return;
+  await save(async () => {
+    await api.deleteFranchise(franchise.id);
+    franchises = franchises.filter((f) => f.id !== franchise.id);
+    render();
+  });
+}
+
+async function addFranchise() {
+  await formDialog({
+    title: "New franchise",
+    okLabel: "Create",
+    body: `<div class="field"><label for="new-franchise">Name</label>
+        <input type="text" id="new-franchise" name="name" maxlength="200" autocomplete="off"></div>
+      <div class="field"><label class="check"><input type="checkbox" name="with_game" checked>
+        Also add a game with this name (for standalone games)</label></div>`,
+    onSubmit: async (form) => {
+      const name = form.elements.name.value.trim();
+      if (!name) throw new Error("Please enter a name.");
+      const games = form.elements.with_game.checked ? [{ title: name }] : [];
+      const created = await withIndicator(() => api.createFranchise({ name, games }));
+      franchises.push(created);
+      expanded.add(created.id);
+      render();
+      document.querySelector(`.fr[data-franchise="${created.id}"]`)?.scrollIntoView({ block: "center" });
+    },
+  });
+}
+
+// From the panel in edit mode. Errors are thrown back so the panel can show
+// them and stay open.
+async function saveGameFromPanel(gameId, changes) {
+  const updated = await withIndicator(() => api.updateGame(gameId, changes));
   const { franchise, game } = findGame(gameId);
   if (changes.franchise_id !== undefined && changes.franchise_id !== franchise.id) {
     // Moved: take it out of the old franchise, add it at the end of the new one.
@@ -209,7 +293,6 @@ async function saveGameFromPanel(gameId, changes) {
     Object.assign(game, updated);
     refreshGame(franchise, game);
   }
-  saveState("Saved ✓", "saved");
 }
 
 // ---------- interaction ----------
@@ -249,9 +332,19 @@ document.addEventListener("click", (event) => {
     target.closest(".fr").classList.toggle("open");   // no full re-render needed
   } else if (action === "dismiss") {
     $("problem").hidden = true;
-  } else if (action === "open-panel") {
+  } else if (action === "add-franchise") {
+    addFranchise();
+  } else if (action === "open-panel" || action === "delete-game") {
     const { franchise, game } = findGame(Number(target.closest("[data-game]").dataset.game));
-    if (game) openGamePanel({ game, franchise, franchises, platforms, onSave: saveGameFromPanel });
+    if (!game) return;
+    if (action === "open-panel") openGame(game, franchise);
+    else confirmDialog(`Delete "${game.title}"?`, "Delete", { danger: true }).then((yes) => {
+      if (yes) save(() => deleteGame(game.id));
+    });
+  } else if (action === "add-game" || action === "delete-franchise") {
+    const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
+    if (action === "add-game") openNewGame(franchise);
+    else deleteFranchise(franchise);
   }
 });
 
