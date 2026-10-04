@@ -47,11 +47,11 @@ One compose file is provided, for connecting to an existing MariaDB server.
 |---|---|---|
 | `platforms` | id, name, sort_order | Initial list from the legacy app. A RomM platform code can be added later. |
 | `franchises` | id, name, notes, sort_order, created_at, updated_at | |
-| `games` | id, franchise_id, title, release_year, release_month, release_note, status, finished_on, notes, backloggd_url, sort_order, created_at, updated_at | Deleting a franchise deletes its games |
+| `games` | id, franchise_id, title, release_year, release_month, release_tba, status, finished_on, notes, backloggd_url, sort_order, created_at, updated_at | Deleting a franchise deletes its games |
 | `game_platforms` | game_id, platform_id, sort_order | One row per platform of a game |
 | `game_links` | id, game_id, label, url, sort_order | One row per link |
 
-- **Release date** is structured: `release_year` + optional `release_month` + optional `release_note` ("TBA", "Early Access"). Displayed as `Aug 2007`, `1998`, `2025 (Early Access)`.
+- **Release date** is the full launch date (not early access), structured as `release_year` + optional `release_month`. `release_tba` marks a date that isn't final (a year, if set, is the expected one). Displayed as `Aug 2007`, `1998`, `2026 (TBA)`, `TBA`.
 - **Status** is limited to `unplayed`, `playing`, `finished`, `skip`.
 - **`finished_on`**: set to today when a game becomes finished (if empty); editable by hand; cleared when the game leaves finished.
 - **`backloggd_url`**: empty means the link is generated from the title.
@@ -83,5 +83,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 
 ## Later (optional)
 - Settings page (app preferences stored in the database)
+- Release date scan: re-check games flagged `release_tba` against a metadata source and fill in confirmed dates
+- "What to play next" picker skips TBA (unreleased) games
 - RomM API integration
 - GitHub Actions building the image (deployment option B)

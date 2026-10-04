@@ -23,16 +23,17 @@ def name_key(name: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
 
 
-def format_release(year: int | None, month: int | None, note: str | None) -> str:
-    """Display label for a release date: "Aug 2007", "1998", "2025 (Early Access)", "TBA"."""
-    parts = []
+def format_release(year: int | None, month: int | None, tba: bool) -> str:
+    """Display label for a release date: "Aug 2007", "1998", "2026 (TBA)", "TBA"."""
     if month and year:
-        parts.append(f"{calendar.month_abbr[month]} {year}")
+        label = f"{calendar.month_abbr[month]} {year}"
     elif year:
-        parts.append(str(year))
-    if note:
-        parts.append(f"({note})" if parts else note)
-    return " ".join(parts)
+        label = str(year)
+    else:
+        label = ""
+    if tba:
+        return f"{label} (TBA)" if label else "TBA"
+    return label
 
 
 class PlatformOut(BaseModel):
@@ -55,7 +56,7 @@ class GameOut(BaseModel):
     title: str
     release_year: int | None
     release_month: int | None
-    release_note: str | None
+    release_tba: bool              # release date not final; a year, if set, is the expected one
     released: str                  # read-only display label, built from the three fields above
     status: Status
     finished_on: date | None
@@ -72,8 +73,8 @@ class GameOut(BaseModel):
             title=game.title,
             release_year=game.release_year,
             release_month=game.release_month,
-            release_note=game.release_note,
-            released=format_release(game.release_year, game.release_month, game.release_note),
+            release_tba=game.release_tba,
+            released=format_release(game.release_year, game.release_month, game.release_tba),
             status=game.status,
             finished_on=game.finished_on,
             notes=game.notes,
@@ -102,9 +103,11 @@ class FranchiseOut(BaseModel):
 
 # --- Input (what the API accepts) -------------------------------------------
 # str_strip_whitespace: " BioShock " is saved as "BioShock".
+# extra="forbid": an unknown field (e.g. a typo like "relase_year") is an error,
+# not silently ignored.
 
 class FranchiseCreate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     name: str = Field(min_length=1, max_length=200)
     notes: str = ""
@@ -116,7 +119,7 @@ class FranchiseUpdate(BaseModel):
     Defaults are None so a field can be left out, but sending `"name": null`
     is rejected because the type is `str`.
     """
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     name: str = Field(None, min_length=1, max_length=200)
     notes: str = None
@@ -129,7 +132,7 @@ def _check_url(value: str | None) -> str | None:
 
 
 class LinkIn(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     label: str = Field(min_length=1, max_length=100)
     url: str = Field(min_length=1, max_length=2000)
@@ -139,9 +142,9 @@ class LinkIn(BaseModel):
 
 class _GameRules(BaseModel):
     """Validation shared by GameCreate and GameUpdate."""
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    @field_validator("release_note", "backloggd_url", mode="after", check_fields=False)
+    @field_validator("backloggd_url", mode="after", check_fields=False)
     @classmethod
     def empty_means_none(cls, value: str | None) -> str | None:
         return value or None
@@ -163,7 +166,7 @@ class GameCreate(_GameRules):
     title: str = Field(min_length=1, max_length=255)
     release_year: int | None = Field(None, ge=1950, le=2100)
     release_month: int | None = Field(None, ge=1, le=12)
-    release_note: str | None = Field(None, max_length=50)
+    release_tba: bool = False
     status: Status = Status.UNPLAYED
     finished_on: date | None = None   # left out: set automatically when status is finished
     notes: str = ""
@@ -186,7 +189,7 @@ class GameCreate(_GameRules):
             title=game.title,
             release_year=game.release_year,
             release_month=game.release_month,
-            release_note=game.release_note,
+            release_tba=game.release_tba,
             status=game.status,
             finished_on=game.finished_on,
             notes=game.notes,
@@ -206,7 +209,7 @@ class GameUpdate(_GameRules):
     title: str = Field(None, min_length=1, max_length=255)
     release_year: int | None = Field(None, ge=1950, le=2100)
     release_month: int | None = Field(None, ge=1, le=12)
-    release_note: str | None = Field(None, max_length=50)
+    release_tba: bool = None
     status: Status = None
     finished_on: date | None = None
     notes: str = None
@@ -220,7 +223,7 @@ class GameUpdate(_GameRules):
 # franchises are referred to by name, so a file can be imported into any install.
 
 class ExportFranchise(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     name: str = Field(min_length=1, max_length=200)
     notes: str = ""
@@ -228,6 +231,8 @@ class ExportFranchise(BaseModel):
 
 
 class ExportFile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     format: Literal["whattoplay-export"]
     version: Literal[1]
     exported_at: datetime | None = None

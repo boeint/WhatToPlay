@@ -15,6 +15,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    false,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -76,7 +77,8 @@ class Game(Timestamps, Base):
     title: Mapped[str] = mapped_column(String(255))
     release_year: Mapped[int | None] = mapped_column(SmallInteger)
     release_month: Mapped[int | None] = mapped_column(SmallInteger)
-    release_note: Mapped[str | None] = mapped_column(String(50))
+    # Release date not final (full launch, not early access). A year, if set, is the expected one.
+    release_tba: Mapped[bool] = mapped_column(default=False, server_default=false())
     status: Mapped[Status] = mapped_column(
         Enum(Status, name="game_status", values_callable=lambda e: [s.value for s in e]),
         default=Status.UNPLAYED,
