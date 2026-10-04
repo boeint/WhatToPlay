@@ -83,8 +83,8 @@ Installation flow (Unraid, all in the web UI):
 - [x] Make the repository public (MIT license, README with install instructions)
 - [x] Make the image public (GitHub ▸ package settings ▸ Change visibility; no API for it)
 - [x] First release `v1.0.0` → `:latest`
-- [ ] Unraid: export the flash share, copy the template, Add Container from the template
-- [ ] Import real data into `whattoplay`; test from phone and PC
+- [x] Unraid: export the flash share, copy the template, Add Container from the template
+- [x] Import real data into `whattoplay`; test from phone and PC
 - [x] `docker-compose.yml` example for installs outside Unraid
 
 ## Phase 6 — Safety net & docs
