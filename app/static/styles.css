@@ -109,6 +109,14 @@ select.status.skip{color:var(--skip)}
 .settings-form code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
 .settings-form .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .settings-form .lnkbtn{text-decoration:underline}
+.platform-list{display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow:auto;padding-right:4px}
+.platform-row{display:flex;align-items:center;gap:8px}
+.platform-row .ord{flex-direction:row}
+.platform-row input{flex:1;min-width:0;padding:4px 8px}
+.platform-row .used{font-size:12px;color:var(--mut);width:70px;text-align:right;white-space:nowrap}
+.platform-row .del:disabled{opacity:.25;cursor:not-allowed;background:transparent}
+.platform-add{display:flex;gap:8px;margin-top:8px}
+.platform-add input{flex:1;min-width:0}
 
 /* Backup status line at the bottom of the page */
 .backup-status{padding:0 20px 40px;color:var(--mut);font-size:13px;text-align:center}

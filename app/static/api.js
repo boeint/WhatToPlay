@@ -41,6 +41,10 @@ async function request(method, path, body) {
 
 export const api = {
   platforms: () => request("GET", "/api/platforms"),
+  createPlatform: (name) => request("POST", "/api/platforms", { name }),
+  renamePlatform: (id, name) => request("PATCH", `/api/platforms/${id}`, { name }),
+  deletePlatform: (id) => request("DELETE", `/api/platforms/${id}`),
+  setPlatformOrder: (ids) => request("PUT", "/api/platform-order", ids),
   franchises: () => request("GET", "/api/franchises"),
   createFranchise: (data) => request("POST", "/api/franchises", data),
   updateFranchise: (id, changes) => request("PATCH", `/api/franchises/${id}`, changes),

@@ -476,6 +476,11 @@ async function saveGameFromPanel(gameId, changes) {
 // One listener for every editable field: it says what it edits with data-field.
 document.addEventListener("change", (event) => {
   const el = event.target;
+  if (el.dataset.platform) {             // renaming a platform in Settings
+    const name = el.value.trim();
+    if (name) platformChange(() => api.renamePlatform(Number(el.dataset.platform), name));
+    return;
+  }
   const field = el.dataset.field;
   if (!field) return;
   let value = el.value;
@@ -492,7 +497,14 @@ document.addEventListener("change", (event) => {
 
 // Enter in a one-line field saves it, like leaving the field.
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && event.target.matches("input[data-field]")) event.target.blur();
+  if (event.key !== "Enter") return;
+  if (event.target.matches("input[data-field], input[data-platform]")) {
+    event.preventDefault();               // inside Settings, Enter must not submit the whole dialog
+    event.target.blur();
+  } else if (event.target.matches("input[name=new_platform]")) {
+    event.preventDefault();
+    addPlatform();
+  }
 });
 
 // One click listener for the whole page; elements say what they do with data-action.
@@ -538,6 +550,13 @@ document.addEventListener("click", (event) => {
     openSettings();
   } else if (action === "reset-ai-instructions") {
     $("ai-instructions").value = defaultAiInstructions;
+  } else if (action === "platform-add") {
+    addPlatform();
+  } else if (action.startsWith("platform-")) {
+    const id = Number(target.closest("[data-platform-id]").dataset.platformId);
+    if (action === "platform-up") movePlatform(id, -1);
+    else if (action === "platform-down") movePlatform(id, +1);
+    else if (action === "platform-delete") platformChange(() => api.deletePlatform(id));
   } else if (action === "restore-backup") {
     restoreBackup();
   } else if (action === "export") {
@@ -624,6 +643,54 @@ async function importData(file) {
 
 // ---------- settings ----------
 let defaultAiInstructions = "";
+let platformsChanged = false;   // reload the backlog when the dialog closes (renamed chips)
+
+function renderPlatformList() {
+  return platforms.map((p, i) => `<div class="platform-row" data-platform-id="${p.id}">
+      <div class="ord">
+        <button type="button" data-action="platform-up" title="Move up" ${i === 0 ? "disabled" : ""}>▲</button>
+        <button type="button" data-action="platform-down" title="Move down" ${i === platforms.length - 1 ? "disabled" : ""}>▼</button>
+      </div>
+      <input data-platform="${p.id}" value="${esc(p.name)}" maxlength="50" aria-label="Platform name">
+      <span class="used" title="Games listing this platform">${p.used_by ? plural(p.used_by, "game") : "unused"}</span>
+      <button type="button" class="del" data-action="platform-delete" ${p.used_by ? "disabled" : ""}
+        title="${p.used_by ? `Used by ${plural(p.used_by, "game")}: remove it from them first` : "Delete"}">×</button>
+    </div>`).join("");
+}
+
+// Run one platform change, then refresh the list shown in the dialog.
+async function platformChange(work) {
+  const box = document.querySelector(".platform-list");
+  const error = document.querySelector("#dialog [data-out=error]");
+  try {
+    await withIndicator(work);
+    error.textContent = "";
+  } catch (err) {
+    error.textContent = err.message;
+  }
+  platforms = await api.platforms();
+  platformsChanged = true;
+  if (box) box.innerHTML = renderPlatformList();
+}
+
+function movePlatform(id, step) {
+  const ids = platforms.map((p) => p.id);
+  const from = ids.indexOf(id);
+  const to = from + step;
+  if (to < 0 || to >= ids.length) return;
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  platformChange(() => api.setPlatformOrder(ids));
+}
+
+function addPlatform() {
+  const input = document.querySelector("#dialog [name=new_platform]");
+  const name = input.value.trim();
+  if (!name) return;
+  platformChange(async () => {
+    await api.createPlatform(name);
+    input.value = "";
+  });
+}
 
 async function openSettings() {
   let s;
@@ -649,6 +716,16 @@ async function openSettings() {
         <textarea id="ai-instructions" name="ai_instructions">${esc(s.ai_instructions)}</textarea>
         <div class="hint">Claude reads these before adding or changing anything.</div>
       </div>
+      <div class="field">
+        <label>Platforms</label>
+        <div class="hint" style="margin:0 0 8px">Changes to platforms are saved immediately. A platform can be
+          deleted only when no game uses it.</div>
+        <div class="platform-list">${renderPlatformList()}</div>
+        <div class="platform-add">
+          <input name="new_platform" maxlength="50" placeholder="New platform, e.g. NSO" aria-label="New platform">
+          <button type="button" data-action="platform-add">Add</button>
+        </div>
+      </div>
     </div>`,
     onSubmit: async (form) => {
       await withIndicator(() => api.updateSettings({
@@ -658,6 +735,10 @@ async function openSettings() {
       toast("Settings saved");
     },
   });
+  if (platformsChanged) {
+    platformsChanged = false;
+    await load();   // renamed platforms appear in the games' chips
+  }
 }
 
 // ---------- backups on the server: status line + restore ----------

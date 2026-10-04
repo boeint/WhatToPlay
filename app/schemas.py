@@ -37,10 +37,15 @@ def format_release(year: int | None, month: int | None, tba: bool) -> str:
 
 
 class PlatformOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)  # can be built from a database row
-
     id: int
     name: str
+    used_by: int = 0                  # number of games listing this platform
+
+
+class PlatformIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    name: str = Field(min_length=1, max_length=50)
 
 
 class LinkOut(BaseModel):
