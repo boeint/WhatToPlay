@@ -101,6 +101,18 @@ select.status.skip{color:var(--skip)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:.3s;z-index:60;pointer-events:none}
 .toast.on{opacity:1}
 
+/* Backup status line at the bottom of the page */
+.backup-status{padding:0 20px 40px;color:var(--mut);font-size:13px;text-align:center}
+.backup-status .warn{color:var(--play)}
+.backup-status .bad{color:var(--danger)}
+.backup-status button{background:transparent;border:none;color:var(--acc2);padding:0 4px;font-size:13px;text-decoration:underline}
+.backup-list{display:flex;flex-direction:column;gap:6px;margin:12px 0;max-height:50vh;overflow:auto}
+.backup-list label{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--panel2)}
+.backup-list label:hover{border-color:var(--acc)}
+.backup-list input{width:auto}
+.backup-list .meta{margin-left:auto;color:var(--mut);font-size:12px;white-space:nowrap}
+.backup-list .tag{font-size:11px;color:var(--play);border:1px solid var(--play);border-radius:10px;padding:0 6px}
+
 /* New in the rebuild */
 .error{margin:20px;padding:14px 16px;border:1px solid var(--danger);border-radius:10px;background:rgba(255,93,93,.08);color:var(--txt);display:flex;gap:12px;align-items:center}
 .error[hidden]{display:none}

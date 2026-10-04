@@ -54,6 +54,15 @@ def export_all(session: SessionDep):
     )
 
 
+def require_replace(replace: bool) -> None:
+    """Safety latch shared by import and restore."""
+    if not replace:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "This replaces all existing data. Add ?replace=true to confirm.",
+        )
+
+
 @router.post("/api/import")
 def import_all(data: ExportFile, session: SessionDep, replace: bool = False):
     """Replace ALL franchises, games and platforms with the contents of an export file.
@@ -62,12 +71,12 @@ def import_all(data: ExportFile, session: SessionDep, replace: bool = False):
     as a single transaction: it either fully succeeds or changes nothing.
     Requires `?replace=true` as a safety latch.
     """
-    if not replace:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "Import replaces all existing data. Add ?replace=true to confirm.",
-        )
+    require_replace(replace)
+    return replace_all(session, data)
 
+
+def replace_all(session: Session, data: ExportFile) -> dict:
+    """Replace everything with a validated export, in one transaction. Returns the new counts."""
     # 1. Remove all franchises (the database cascades to games, platforms rows, links).
     session.execute(delete(Franchise))
 

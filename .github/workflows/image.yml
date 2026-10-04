@@ -67,6 +67,12 @@ jobs:
           backup=$(ls "$RUNNER_TEMP"/backups/whattoplay-export-*.json)
           test "$(stat -c %u:%g "$backup")" = "99:100"
           python3 -c "import json, sys; d = json.load(open(sys.argv[1])); assert d['format'] == 'whattoplay-export' and len(d['platforms']) == 31" "$backup"
+          # The backup list shows it, and restoring it works and first saves a copy of the current data
+          name=$(basename "$backup")
+          curl -fsS http://localhost:8000/api/backups | grep -q "\"name\":\"$name\""
+          curl -fsS -X POST "http://localhost:8000/api/backups/$name/restore?replace=true" | grep -q '"restored"'
+          test "$(stat -c %u:%g "$RUNNER_TEMP"/backups/whattoplay-before-restore-*.json)" = "99:100"
+          curl -fsS http://localhost:8000/api/health | grep -q '"enabled":true'
           echo "all checks passed"
 
       - name: Show the app's log

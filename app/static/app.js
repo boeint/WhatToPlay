@@ -534,6 +534,8 @@ document.addEventListener("click", (event) => {
     const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
     if (action === "add-game") openNewGame(franchise);
     else deleteFranchise(franchise);
+  } else if (action === "restore-backup") {
+    restoreBackup();
   } else if (action === "export") {
     exportData();
   } else if (action === "import") {
@@ -616,6 +618,70 @@ async function importData(file) {
   }
 }
 
+// ---------- backups on the server: status line + restore ----------
+// "today 03:30", "yesterday 03:30", or "Oct 2, 03:30" (in this device's time zone).
+function when(iso) {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86_400_000);
+  if (days === 0) return `today ${time}`;
+  if (days === 1) return `yesterday ${time}`;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
+}
+
+async function loadBackupStatus() {
+  const el = $("backup-status");
+  let s;
+  try {
+    s = await api.backups();
+  } catch {
+    el.textContent = "";
+    return;
+  }
+  const failedLast = s.last_error && (!s.latest || s.last_error.at > s.latest.written_at);
+  let line;
+  if (!s.enabled) {
+    line = `<span class="warn">⚠ Daily backups are off: ${esc(s.reason)}.</span>`;
+  } else if (failedLast) {
+    line = `<span class="bad">✖ The last backup failed (${esc(when(s.last_error.at))}): ${esc(s.last_error.message)}</span>`;
+  } else if (s.latest) {
+    line = `✓ Last backup ${esc(when(s.latest.written_at))} · ${plural(s.daily_count, "daily backup")} kept · next ${esc(when(s.next_at))}`;
+  } else {
+    line = `Daily backups on · first one ${esc(when(s.next_at))}`;
+  }
+  const restore = s.enabled && s.files.length ? ` · <button data-action="restore-backup">Restore a backup…</button>` : "";
+  el.innerHTML = line + restore;
+}
+
+async function restoreBackup() {
+  let s;
+  try {
+    s = await api.backups();
+  } catch (err) {
+    return showProblem(`Could not list the backups: ${err.message}`);
+  }
+  const options = s.files.map((f, i) => `<label>
+      <input type="radio" name="backup" value="${esc(f.name)}" ${i === 0 ? "checked" : ""}>
+      <span>${esc(when(f.written_at))}</span>
+      ${f.kind === "before-restore" ? `<span class="tag" title="Saved automatically just before a restore">before a restore</span>` : ""}
+      <span class="meta">${Math.round(f.size / 1024)} KB</span></label>`).join("");
+  await formDialog({
+    title: "Restore a backup",
+    okLabel: "Restore",
+    danger: true,
+    body: `<p class="dialog-text">Restoring replaces all your current data with the chosen backup.
+      A copy of the current data is saved first, so this can be undone from this same list.</p>
+      <div class="backup-list">${options}</div>`,
+    onSubmit: async (form) => {
+      const name = form.elements.backup.value;
+      const result = await withIndicator(() => api.restoreBackup(name));
+      expanded.clear();
+      await load();
+      toast(`Restored: ${plural(result.franchises, "franchise")} and ${plural(result.games, "game")}`);
+    },
+  });
+}
+
 $("import-file").addEventListener("change", (event) => {
   const file = event.target.files[0];
   event.target.value = "";   // so choosing the same file again still triggers
@@ -683,6 +749,7 @@ async function load() {
     [franchises, platforms] = await Promise.all([api.franchises(), api.platforms()]);
     lastLoaded = Date.now();
     render();
+    loadBackupStatus();   // not awaited: the list doesn't wait for it
   } catch (err) {
     $("app").innerHTML = "";
     showProblem(err.message);

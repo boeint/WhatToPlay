@@ -40,9 +40,9 @@ export function confirmDialog(message, okLabel = "OK", { danger = false } = {}) 
 
 // A small form. onSubmit(form) may throw: the message is shown and the dialog
 // stays open. Resolves to true when submitted, false when cancelled.
-export function formDialog({ title, body, okLabel = "OK", onSubmit }) {
+export function formDialog({ title, body, okLabel = "OK", danger = false, onSubmit }) {
   return new Promise((resolve) =>
-    open(`<h2 style="font-size:18px">${esc(title)}</h2>${body}${buttons(okLabel, false)}`, resolve, onSubmit));
+    open(`<h2 style="font-size:18px">${esc(title)}</h2>${body}${buttons(okLabel, danger)}`, resolve, onSubmit));
 }
 
 export const isDialogOpen = () => overlay.classList.contains("on");

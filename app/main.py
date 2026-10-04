@@ -14,7 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from app.backups import backup_loop
+from app import backups
+from app.backups import backup_loop, backup_status
 from app.db import get_engine
 from app.routers import backup, franchises, games, platforms
 
@@ -35,17 +36,30 @@ app.include_router(platforms.router)
 app.include_router(franchises.router)
 app.include_router(games.router)
 app.include_router(backup.router)
+app.include_router(backups.router)
 
 
 @app.get("/api/health", tags=["health"])
 def health():
-    """Used by Docker / Unraid to show whether the app is healthy."""
+    """Used by Docker / Unraid to show whether the app is healthy.
+
+    Backups are reported but don't make the app "unhealthy": it still works without them.
+    """
     try:
         with get_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
     except OperationalError:
         return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
-    return {"status": "ok", "database": "ok"}
+    status_ = backup_status(with_files=False)
+    return {
+        "status": "ok",
+        "database": "ok",
+        "backups": {
+            "enabled": status_["enabled"],
+            "latest": status_["latest"]["written_at"] if status_["latest"] else None,
+            "last_error": status_["last_error"],
+        },
+    }
 
 
 # The web page (index.html, styles.css, app.js...) at "/". Mounted last so the
