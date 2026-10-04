@@ -8,6 +8,14 @@ import { BLANK_GAME, openGamePanel } from "./panel.js";
 let franchises = [];          // from GET /api/franchises, in custom order
 let platforms = [];           // from GET /api/platforms, in display order
 const expanded = new Set();   // franchise ids; collapsed by default on every load
+let query = "";               // search box, normalized (see fold)
+let statusFilter = "all";
+
+// The chosen sort is a per-device preference, remembered in this browser.
+let sortMode = "az";
+try {
+  sortMode = localStorage.getItem("whattoplay.sort") || "az";
+} catch { /* storage unavailable (e.g. private mode): use the default */ }
 
 // Column widths are a per-device display preference, kept in this browser.
 const COLUMN_DEFAULTS = { released: 92, platform: 200, playon: 110, status: 110, notes: 200, links: 80 };
@@ -26,6 +34,9 @@ function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
+
+// Lower case, accents removed: "Pokémon" -> "pokemon", so searches ignore both.
+const fold = (text) => String(text ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 const isOpenGame = (g) => g.status !== "finished" && g.status !== "skip";
 const remaining = (f) => f.games.filter(isOpenGame).length;
@@ -86,10 +97,38 @@ function renderSummary(f) {
     : `<span class="fr-prog" style="color:var(--done)">✓ complete</span>`);
 }
 
-function renderFranchise(f) {
-  const open = expanded.has(f.id);
+// ---------- search / filter / sort ----------
+const isFiltering = () => query !== "" || statusFilter !== "all";
+
+// The games of a franchise that match the search and status filter,
+// or null when the whole franchise should be hidden.
+function visibleGames(f) {
+  if (!isFiltering()) return f.games;
+  const nameMatches = query !== "" && fold(f.name).includes(query);
+  const games = f.games.filter((g) => {
+    const text = [g.title, g.notes, g.play_on, ...g.platforms].map(fold).join("\n");
+    const matchesQuery = !query || nameMatches || text.includes(query);
+    const matchesStatus = statusFilter === "all" || g.status === statusFilter;
+    return matchesQuery && matchesStatus;
+  });
+  if (games.length) return games;
+  // No matching game: still show a franchise whose *name* matches, unless a status filter is on.
+  return nameMatches && statusFilter === "all" ? [] : null;
+}
+
+function sortedFranchises() {
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  if (sortMode === "custom") return franchises;              // the server's order
+  if (sortMode === "remaining") return [...franchises].sort((a, b) => remaining(b) - remaining(a) || byName(a, b));
+  return [...franchises].sort(byName);                       // A–Z, "The" counts
+}
+
+function renderFranchise(f, games = f.games) {
+  // While searching or filtering, franchises with matches open automatically.
+  const open = expanded.has(f.id) || (isFiltering() && games.length > 0);
   return `<div class="fr ${open ? "open" : ""}" data-franchise="${f.id}">
     <div class="fr-head" data-action="toggle">
+      <span class="drag-handle fr-drag" draggable="true" title="Drag to reorder franchises">⠿</span>
       <span class="caret">▶</span>
       <input class="fr-title" data-field="name" value="${esc(f.name)}" aria-label="Franchise name">
       <span class="fr-summary">${renderSummary(f)}</span>
@@ -109,23 +148,32 @@ function renderFranchise(f) {
         <th>Notes<span class="rz" data-col="notes"></span></th>
         <th>Links<span class="rz" data-col="links"></span></th>
         <th></th><th></th>
-      </tr></thead><tbody>${f.games.map(renderGame).join("")}</tbody></table>
-      <div class="fr-foot"><button data-action="add-game">+ Add game to ${esc(f.name)}</button></div></div>
+      </tr></thead><tbody>${games.map((g) => renderGame(g, f.games.indexOf(g), f.games)).join("")}</tbody></table>
+      <div class="fr-foot"><button data-action="add-game">+ Add game to ${esc(f.name)}</button>
+        <span class="reorder-hint">Clear the search and status filter to reorder.</span></div></div>
     </div>
   </div>`;
 }
 
 // Redraw one whole franchise block (after adding / deleting games).
 function refreshFranchise(franchise) {
+  if (isFiltering()) return render();   // what's visible may have changed
   const block = document.querySelector(`.fr[data-franchise="${franchise.id}"]`);
   if (block) block.outerHTML = renderFranchise(franchise);
   renderStats();
 }
 
 function render() {
-  // Default sort: A–Z by name, literal first word ("The" counts).
-  const list = [...franchises].sort((a, b) => a.name.localeCompare(b.name));
-  $("app").innerHTML = list.map(renderFranchise).join("") || `<div class="empty">No franchises yet.</div>`;
+  const app = $("app");
+  const html = sortedFranchises().map((f) => {
+    const games = visibleGames(f);
+    return games === null ? "" : renderFranchise(f, games);
+  }).join("");
+  app.classList.toggle("filtering", isFiltering());
+  app.classList.toggle("custom-sort", sortMode === "custom" && !isFiltering());
+  app.innerHTML = html || (franchises.length
+    ? `<div class="empty">No matches. <button class="btn-ghost" data-action="reset-filters">Reset</button></div>`
+    : `<div class="empty">No franchises yet. Add one with “+ Franchise”.</div>`);
   renderStats();
 }
 
@@ -140,6 +188,7 @@ function renderStats() {
 
 // Redraw just one game row and its franchise's summary (keeps focus elsewhere intact).
 function refreshGame(franchise, game) {
+  if (isFiltering()) return render();   // the game may no longer match the filter
   const row = document.querySelector(`tr[data-game="${game.id}"]`);
   if (row) row.outerHTML = renderGame(game, franchise.games.indexOf(game), franchise.games);
   refreshSummary(franchise);
@@ -299,52 +348,78 @@ function moveGame(franchise, gameId, step) {
   reorderGames(franchise, ids);
 }
 
-// Drag and drop, only from the ⠿ handle, only within the same franchise.
-let dragging = null;   // { franchiseId, gameId }
+async function reorderFranchises(franchiseIds) {
+  const byId = new Map(franchises.map((f) => [f.id, f]));
+  franchises = franchiseIds.map((id) => byId.get(id));
+  render();
+  await save(() => api.setFranchiseOrder(franchiseIds));
+}
+
+// Move `id` to just before / after `targetId` in a list of ids.
+function moveId(ids, id, targetId, after) {
+  const rest = ids.filter((x) => x !== id);
+  rest.splice(rest.indexOf(targetId) + (after ? 1 : 0), 0, id);
+  return rest;
+}
+
+// Drag and drop, only from a ⠿ handle:
+//  - a game, within its own franchise;
+//  - a franchise (handle shown only in custom sort), among the franchises.
+let dragging = null;   // { kind: "game" | "franchise", id, franchiseId }
 
 function clearDropMarks() {
   document.querySelectorAll(".drop-before, .drop-after, .dragging")
     .forEach((el) => el.classList.remove("drop-before", "drop-after", "dragging"));
 }
 
+// The element a drop would land on (a game row, or a franchise block), if allowed.
+function dropTarget(event) {
+  if (!dragging) return null;
+  if (dragging.kind === "franchise") return event.target.closest(".fr[data-franchise]");
+  const row = event.target.closest("tr[data-game]");
+  const sameFranchise = row && Number(row.closest("[data-franchise]").dataset.franchise) === dragging.franchiseId;
+  return sameFranchise ? row : null;
+}
+
 document.addEventListener("dragstart", (event) => {
   const handle = event.target.closest?.(".drag-handle");
   if (!handle) return;
   const row = handle.closest("tr[data-game]");
-  dragging = {
-    franchiseId: Number(row.closest("[data-franchise]").dataset.franchise),
-    gameId: Number(row.dataset.game),
-  };
+  const block = handle.closest(".fr[data-franchise]");
+  const moving = row || block;                          // a game handle sits inside a row
+  dragging = row
+    ? { kind: "game", id: Number(row.dataset.game), franchiseId: Number(block.dataset.franchise) }
+    : { kind: "franchise", id: Number(block.dataset.franchise) };
   event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setData("text/plain", row.dataset.game);   // required by Firefox
-  event.dataTransfer.setDragImage(row, 20, 20);                  // drag the whole row
-  row.classList.add("dragging");
+  event.dataTransfer.setData("text/plain", String(dragging.id));   // required by Firefox
+  event.dataTransfer.setDragImage(moving, 20, 20);                  // drag the whole row / block
+  moving.classList.add("dragging");
 });
 
 document.addEventListener("dragover", (event) => {
-  if (!dragging) return;
-  const row = event.target.closest("tr[data-game]");
-  if (!row || Number(row.closest("[data-franchise]").dataset.franchise) !== dragging.franchiseId) return;
+  const target = dropTarget(event);
+  if (!target) return;
   event.preventDefault();   // "a drop is allowed here"
-  const box = row.getBoundingClientRect();
+  // For franchises, compare with the header's middle (blocks can be tall when open).
+  const box = (target.querySelector(".fr-head") || target).getBoundingClientRect();
   const after = event.clientY > box.top + box.height / 2;
   document.querySelectorAll(".drop-before, .drop-after")
     .forEach((el) => el.classList.remove("drop-before", "drop-after"));
-  row.classList.add(after ? "drop-after" : "drop-before");
+  target.classList.add(after ? "drop-after" : "drop-before");
 });
 
 document.addEventListener("drop", (event) => {
-  if (!dragging) return;
-  const row = event.target.closest("tr[data-game]");
-  if (!row) return;
+  const target = dropTarget(event);
+  if (!target) return;
   event.preventDefault();
-  const franchise = findFranchise(dragging.franchiseId);
-  const targetId = Number(row.dataset.game);
-  const after = row.classList.contains("drop-after");
-  const ids = franchise.games.map((g) => g.id).filter((id) => id !== dragging.gameId);
-  if (targetId !== dragging.gameId) {
-    ids.splice(ids.indexOf(targetId) + (after ? 1 : 0), 0, dragging.gameId);
-    reorderGames(franchise, ids);
+  const after = target.classList.contains("drop-after");
+  if (dragging.kind === "game") {
+    const franchise = findFranchise(dragging.franchiseId);
+    const targetId = Number(target.dataset.game);
+    if (targetId !== dragging.id) reorderGames(franchise, moveId(franchise.games.map((g) => g.id), dragging.id, targetId, after));
+  } else {
+    const targetId = Number(target.dataset.franchise);
+    if (targetId !== dragging.id) reorderFranchises(moveId(franchises.map((f) => f.id), dragging.id, targetId, after));
   }
   clearDropMarks();
   dragging = null;
@@ -403,8 +478,8 @@ document.addEventListener("click", (event) => {
   const action = target.dataset.action;
 
   if (action === "toggle") {
-    // Clicks on the name field inside a franchise header don't toggle it.
-    if (event.target.closest("input, textarea, select, button")) return;
+    // Clicks on the name field or the drag handle inside a franchise header don't toggle it.
+    if (event.target.closest("input, textarea, select, button, .drag-handle")) return;
     const id = Number(target.closest("[data-franchise]").dataset.franchise);
     expanded.has(id) ? expanded.delete(id) : expanded.add(id);
     target.closest(".fr").classList.toggle("open");   // no full re-render needed
@@ -425,7 +500,60 @@ document.addEventListener("click", (event) => {
     const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
     if (action === "add-game") openNewGame(franchise);
     else deleteFranchise(franchise);
+  } else if (action === "expand-all") {
+    franchises.forEach((f) => expanded.add(f.id));
+    render();
+  } else if (action === "collapse-all") {
+    expanded.clear();
+    render();
+  } else if (action === "reset-filters") {
+    $("search").value = "";
+    $("filter").value = "all";
+    query = "";
+    statusFilter = "all";
+    render();
   }
+});
+
+// ---------- search, filter, sort ----------
+let searchTimer;
+$("search").addEventListener("input", () => {
+  clearTimeout(searchTimer);   // wait for a pause in typing before redrawing 560 games
+  searchTimer = setTimeout(() => { query = fold($("search").value); render(); }, 150);
+});
+$("filter").addEventListener("change", () => { statusFilter = $("filter").value; render(); });
+$("sort").value = sortMode;
+$("sort").addEventListener("change", () => {
+  sortMode = $("sort").value;
+  try { localStorage.setItem("whattoplay.sort", sortMode); } catch { /* private mode */ }
+  render();
+});
+
+// ---------- column resizing ----------
+// Drag a column header's right edge; the width applies to every franchise table
+// and is remembered in this browser.
+let resizing = null;   // { col, startX, startWidth }
+
+document.addEventListener("mousedown", (event) => {
+  const edge = event.target.closest(".rz");
+  if (!edge) return;
+  event.preventDefault();
+  resizing = { col: edge.dataset.col, startX: event.clientX, startWidth: columnWidths[edge.dataset.col] };
+  document.body.classList.add("resizing");
+});
+
+document.addEventListener("mousemove", (event) => {
+  if (!resizing) return;
+  const width = Math.max(50, resizing.startWidth + event.clientX - resizing.startX);
+  columnWidths[resizing.col] = width;
+  document.querySelectorAll(`col[data-col="${resizing.col}"]`).forEach((c) => { c.style.width = `${width}px`; });
+});
+
+document.addEventListener("mouseup", () => {
+  if (!resizing) return;
+  resizing = null;
+  document.body.classList.remove("resizing");
+  try { localStorage.setItem("whattoplay.cols", JSON.stringify(columnWidths)); } catch { /* private mode */ }
 });
 
 // ---------- start ----------

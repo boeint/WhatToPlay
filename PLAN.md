@@ -72,7 +72,7 @@ One compose file is provided, for connecting to an existing MariaDB server.
 - [x] Step 2: quick edits in the table (title, status, play on, notes, franchise name/notes), "Saved" indicator, error handling
 - [x] Step 3: game detail panel (release year/month/TBA, finished date, platforms, notes, links, Backloggd override, move to franchise)
 - [x] Step 4: add game (opens the panel), add franchise dialog, in-app delete confirmations, reorder arrows + drag and drop
-- [ ] Step 5: search (incl. notes), status filter, sorts, column resizing
+- [x] Step 5: search (incl. notes), status filter, sorts (custom sort: drag franchises), column resizing
 - [ ] Step 6: "What to play next" picker, skipping TBA games
 - [ ] Step 7: Export / Import buttons, automatic backup before import
 - [ ] Step 8: phone layout (cards, full-screen panel); reload data when returning to the tab
