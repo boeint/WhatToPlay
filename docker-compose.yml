@@ -1,0 +1,22 @@
+# WhatToPlay with Docker Compose (for installs outside Unraid).
+#   1. Copy .env.example to .env and fill it in.
+#   2. docker compose up -d
+#   3. Open http://your-server:8095
+services:
+  whattoplay:
+    image: ghcr.io/boeint/whattoplay:latest
+    container_name: whattoplay
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: ${TZ:-UTC}               # your time zone, e.g. America/New_York
+    ports:
+      - "${APP_PORT:-8095}:8000"
+    # If MariaDB runs in Docker on a custom network, join that network so
+    # DB_HOST can be the MariaDB container's name:
+    # networks: [database]
+
+# networks:
+#   database:
+#     external: true
+#     name: your-mariadb-network
