@@ -4,11 +4,16 @@ Run locally:
     uvicorn app.main:app
 then open http://localhost:8000/docs
 """
+from pathlib import Path
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 
 from app.routers import backup, franchises, games, platforms
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title="WhatToPlay", version="0.1.0")
 
@@ -16,6 +21,10 @@ app.include_router(platforms.router)
 app.include_router(franchises.router)
 app.include_router(games.router)
 app.include_router(backup.router)
+
+# The web page (index.html, styles.css, app.js...) at "/". Mounted last so the
+# /api/... routes above take precedence.
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
 @app.exception_handler(IntegrityError)
