@@ -17,7 +17,8 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# --- Editors / OS --------------------------------------------------------
+# --- Editors / OS / tools ------------------------------------------------
+.claude/
 .vscode/
 .idea/
 *.swp
