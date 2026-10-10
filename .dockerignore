@@ -8,6 +8,9 @@ venv
 .env.*
 data/
 unraid/
+tests/
+pytest.ini
+requirements-dev.txt
 **/__pycache__
 *.pyc
 *.md

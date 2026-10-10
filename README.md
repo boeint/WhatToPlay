@@ -104,11 +104,21 @@ Python 3.14, FastAPI, SQLAlchemy, Alembic; the page is plain HTML / CSS / JavaSc
 
 ```sh
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # Windows; .venv/bin/... elsewhere
-cp .env.example .env                                       # point it at a development database
+.venv/Scripts/python -m pip install -r requirements-dev.txt   # Windows; .venv/bin/... elsewhere
+cp .env.example .env                                           # point it at a development database
 alembic upgrade head
-uvicorn app.main:app                                       # http://localhost:8000, API docs at /docs
+uvicorn app.main:app                                           # http://localhost:8000, API docs at /docs
 ```
+
+### Tests
+
+```sh
+python -m pytest
+```
+
+The tests use a real MariaDB database whose name must end in `_test` (they empty it): `.env`'s server
+and user with the database `whattoplay_test`, or set `TEST_DB_NAME`. On GitHub they run against a
+throwaway MariaDB before every image build; if one fails, nothing is published.
 
 Pushes to `main` publish `ghcr.io/boeint/whattoplay:dev`; release tags (`v1.2.3`) publish `:latest`.
 The design notes and roadmap are in [PLAN.md](PLAN.md).
