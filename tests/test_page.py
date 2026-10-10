@@ -17,3 +17,17 @@ def test_unchanged_files_cost_only_a_not_modified(client):
 
 def test_api_answers_are_left_alone(client):
     assert "cache-control" not in client.get("/api/platforms").headers
+
+
+def test_installable_on_a_phone(client):
+    """The manifest (name, full-screen, icons) is linked from the page and every icon it names exists."""
+    page = client.get("/").text
+    assert '<link rel="manifest" href="manifest.webmanifest">' in page
+    response = client.get("/manifest.webmanifest")
+    assert response.headers["content-type"].startswith("application/manifest+json")
+    manifest = response.json()
+    assert manifest["display"] == "standalone" and manifest["start_url"] == "/"
+    sizes = {icon["sizes"] for icon in manifest["icons"]}
+    assert {"192x192", "512x512"} <= sizes
+    for icon in manifest["icons"] + [{"src": "apple-touch-icon.png"}]:
+        assert client.get("/" + icon["src"]).headers["content-type"] == "image/png"
