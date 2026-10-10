@@ -1,11 +1,12 @@
-// "What to play next": pick a random franchise and suggest its next game in
-// play order. A franchise takes part only if its next game (the first one not
+// "What to play next": suggest the next game (in play order) of a few random
+// franchises. A franchise takes part only if its next game (the first one not
 // finished or skipped) is released (not TBA or upcoming) and not already being played.
 
 const overlay = document.getElementById("picker");
+const PICKS = 3;      // suggestions shown at once (each from a different franchise)
 
 let current = null;   // { franchises, onPlaying, onOpen }
-let pick = null;      // { franchise, game }
+let picks = [];       // [{ franchise, game }, ...]
 let scope = "all";    // "all" or a franchise id
 
 function esc(value) {
@@ -33,13 +34,38 @@ function candidates() {
     .filter(({ game }) => game && !isUnreleased(game) && game.status !== "playing");
 }
 
+// A random order (Fisher–Yates shuffle: every order equally likely).
+function shuffled(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 function roll() {
   const all = candidates();
   const pool = scope === "all" ? all : all.filter((c) => c.franchise.id === scope);
-  if (!pool.length) { pick = null; return; }
-  // Re-rolling avoids showing the same game twice in a row when there's a choice.
-  const others = pool.length > 1 && pick ? pool.filter((c) => c.game.id !== pick.game.id) : pool;
-  pick = others[Math.floor(Math.random() * others.length)];
+  // Re-rolling prefers games not just shown; it reuses some only when there aren't enough others.
+  const shown = new Set(picks.map((p) => p.game.id));
+  const fresh = shuffled(pool.filter((c) => !shown.has(c.game.id)));
+  const again = shuffled(pool.filter((c) => shown.has(c.game.id)));
+  picks = [...fresh, ...again].slice(0, PICKS);
+}
+
+function renderPick({ franchise, game: g }, index) {
+  const where = g.play_on ? `Play on <b>${esc(g.play_on)}</b>` : esc(g.platforms.join(" · ") || "platform: tbd");
+  return `<div class="pick-card">
+      <div class="roll-fr">${esc(franchise.name)}</div>
+      <div class="pick-game"><a href="${esc(g.backloggd_link)}" target="_blank" rel="noopener" title="Open on Backloggd">${esc(g.title)}</a></div>
+      <div class="roll-plat">${where}${g.released ? ` — ${esc(g.released)}` : ""}</div>
+      ${g.notes ? `<div class="roll-note">“${esc(g.notes)}”</div>` : ""}
+      <div class="pick-actions">
+        <button type="button" data-picker="playing" data-index="${index}">Set as Playing</button>
+        <button type="button" class="btn-ghost" data-picker="open" data-index="${index}">Open details</button>
+      </div>
+    </div>`;
 }
 
 function render() {
@@ -47,30 +73,18 @@ function render() {
   const options = [...all].sort((a, b) => a.franchise.name.localeCompare(b.franchise.name))
     .map(({ franchise }) => `<option value="${franchise.id}" ${scope === franchise.id ? "selected" : ""}>${esc(franchise.name)}</option>`)
     .join("");
-  let card;
-  if (pick) {
-    const g = pick.game;
-    const where = g.play_on ? `Play on <b>${esc(g.play_on)}</b>` : esc(g.platforms.join(" · ") || "platform: tbd");
-    card = `<div class="roll-card">
-        <div class="roll-fr">${esc(pick.franchise.name)}</div>
-        <div class="roll-game"><a href="${esc(g.backloggd_link)}" target="_blank" rel="noopener" title="Open on Backloggd">${esc(g.title)}</a></div>
-        <div class="roll-plat">${where}${g.released ? ` — ${esc(g.released)}` : ""}</div>
-        ${g.notes ? `<div class="roll-note">“${esc(g.notes)}”</div>` : ""}
-      </div>`;
-  } else {
-    card = `<div class="roll-card"><div class="roll-game">🎉 All caught up!</div>
+  const body = picks.length
+    ? `<div class="pick-list">${picks.map(renderPick).join("")}</div>`
+    : `<div class="roll-card"><div class="roll-game">🎉 All caught up!</div>
         <div class="roll-plat">Nothing to suggest${scope === "all" ? "" : " in this franchise"}.</div></div>`;
-  }
-  overlay.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="What to play next">
+  overlay.innerHTML = `<div class="modal picker-modal" role="dialog" aria-modal="true" aria-label="What to play next">
       <div class="filter-roll">Pick from:
         <select data-picker="scope" aria-label="Pick from"><option value="all">any franchise</option>${options}</select>
       </div>
-      ${card}
+      ${body}
       <div class="roll-hint">${all.length} franchise${all.length === 1 ? "" : "s"} in the draw. Unreleased (TBA or upcoming) and already-playing games are left out.</div>
       <div class="roll-actions">
         <button type="button" class="btn-roll" data-picker="roll">🎲 Re-roll</button>
-        ${pick ? `<button type="button" data-picker="playing">Set as Playing</button>
-                  <button type="button" data-picker="open">Open details</button>` : ""}
         <button type="button" class="btn-ghost" data-picker="close">Close</button>
       </div>
     </div>`;
@@ -79,7 +93,7 @@ function render() {
 export function openPicker(options) {
   current = options;
   if (scope !== "all" && !current.franchises.some((f) => f.id === scope)) scope = "all";
-  pick = null;
+  picks = [];
   roll();
   render();
   overlay.classList.add("on");
@@ -92,12 +106,13 @@ function close() {
 
 overlay.addEventListener("click", async (event) => {
   if (event.target === overlay) return close();   // click outside the box
-  const action = event.target.closest("[data-picker]")?.dataset.picker;
+  const button = event.target.closest("[data-picker]");
+  const action = button?.dataset.picker;
+  const chosen = picks[Number(button?.dataset.index)];
   if (action === "roll") { roll(); render(); }
   else if (action === "close") close();
-  else if (action === "open") { close(); current.onOpen(pick.game, pick.franchise); }
+  else if (action === "open") { close(); current.onOpen(chosen.game, chosen.franchise); }
   else if (action === "playing") {
-    const chosen = pick;
     close();
     await current.onPlaying(chosen.game, chosen.franchise);
   }
@@ -106,7 +121,7 @@ overlay.addEventListener("click", async (event) => {
 overlay.addEventListener("change", (event) => {
   if (event.target.dataset.picker !== "scope") return;
   scope = event.target.value === "all" ? "all" : Number(event.target.value);
-  pick = null;
+  picks = [];
   roll();
   render();
 });
