@@ -68,6 +68,7 @@ class Game(Timestamps, Base):
     __tablename__ = "games"
     __table_args__ = (
         CheckConstraint("release_month BETWEEN 1 AND 12", name="release_month_range"),
+        CheckConstraint("length_hours BETWEEN 1 AND 999", name="length_hours_range"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -85,6 +86,8 @@ class Game(Timestamps, Base):
         server_default=Status.UNPLAYED.value,
     )
     finished_on: Mapped[date | None]
+    # Time to beat the main story, in hours (like HowLongToBeat's "Main Story"), if known.
+    length_hours: Mapped[int | None] = mapped_column(SmallInteger)
     notes: Mapped[str] = mapped_column(Text, default="")
     backloggd_url: Mapped[str | None] = mapped_column(String(500))  # None = generated from title
     sort_order: Mapped[int]

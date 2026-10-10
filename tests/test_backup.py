@@ -18,7 +18,7 @@ def export(client):
 def sample(make_franchise):
     make_franchise("Pokémon", [
         {"title": "Red / Blue", "release_year": 1996, "release_month": 2, "platforms": ["Game Boy"],
-         "play_on": "Game Boy", "status": "finished", "finished_on": "2020-05-01", "notes": "first one"},
+         "play_on": "Game Boy", "status": "finished", "finished_on": "2020-05-01", "notes": "first one", "length_hours": 26},
         {"title": "Legends", "release_tba": True, "links": [{"label": "site", "url": "https://example.com"}]},
     ], notes="Mainline only")
     make_franchise("BioShock", [{"title": "BioShock", "backloggd_url": "https://backloggd.com/games/bioshock/"}])

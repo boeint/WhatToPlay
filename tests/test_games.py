@@ -116,3 +116,15 @@ def test_delete_game(client, franchise):
     game = add(client, franchise).json()
     assert client.delete(f"/api/games/{game['id']}").status_code == 204
     assert client.get(f"/api/games/{game['id']}").status_code == 404
+
+
+def test_length_hours(client, franchise):
+    game = add(client, franchise, length_hours=12).json()
+    assert game["length_hours"] == 12
+    assert client.patch(f"/api/games/{game['id']}", json={"length_hours": 40}).json()["length_hours"] == 40
+    assert client.patch(f"/api/games/{game['id']}", json={"length_hours": None}).json()["length_hours"] is None
+
+
+def test_length_hours_must_be_1_to_999(client, franchise):
+    assert add(client, franchise, length_hours=0).status_code == 422
+    assert add(client, franchise, length_hours=1000).status_code == 422

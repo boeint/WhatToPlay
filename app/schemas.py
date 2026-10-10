@@ -65,6 +65,7 @@ class GameOut(BaseModel):
     released: str                  # read-only display label, built from the three fields above
     status: Status
     finished_on: date | None
+    length_hours: int | None       # main story, in hours
     notes: str
     platforms: list[str]           # platform names, in the game's order
     play_on: str | None            # where the user will play it: one of `platforms`
@@ -83,6 +84,7 @@ class GameOut(BaseModel):
             released=format_release(game.release_year, game.release_month, game.release_tba),
             status=game.status,
             finished_on=game.finished_on,
+            length_hours=game.length_hours,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
             play_on=game.play_on.name if game.play_on else None,
@@ -178,6 +180,7 @@ class GameCreate(_GameRules):
     release_tba: bool = False
     status: Status = Status.UNPLAYED
     finished_on: date | None = None   # left out: set automatically when status is finished
+    length_hours: int | None = Field(None, ge=1, le=999)   # main story, in hours
     notes: str = ""
     platforms: list[str] = []         # platform names, in order
     play_on: str | None = None        # one of `platforms`
@@ -204,6 +207,7 @@ class GameCreate(_GameRules):
             release_tba=game.release_tba,
             status=game.status,
             finished_on=game.finished_on,
+            length_hours=game.length_hours,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
             play_on=game.play_on.name if game.play_on else None,
@@ -225,6 +229,7 @@ class GameUpdate(_GameRules):
     release_tba: bool = None
     status: Status = None
     finished_on: date | None = None
+    length_hours: int | None = Field(None, ge=1, le=999)
     notes: str = None
     platforms: list[str] = None
     play_on: str | None = None        # null clears it
