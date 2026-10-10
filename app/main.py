@@ -18,7 +18,7 @@ from app import backups
 from app.backups import backup_loop, backup_status
 from app.db import get_engine
 from app.mcp_server import AISwitch, mcp, mcp_asgi_app
-from app.routers import backup, franchises, games, platforms, settings
+from app.routers import backup, franchises, games, lengths, platforms, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="WhatToPlay", version="1.5.0", lifespan=lifespan)
+app = FastAPI(title="WhatToPlay", version="1.6.0", lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -50,6 +50,7 @@ app.include_router(games.router)
 app.include_router(backup.router)
 app.include_router(backups.router)
 app.include_router(settings.router)
+app.include_router(lengths.router)
 
 
 @app.get("/api/health", tags=["health"])

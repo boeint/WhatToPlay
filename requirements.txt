@@ -11,3 +11,4 @@ alembic==1.20.0             # versioned database schema changes (migrations)
 pymysql==1.2.3              # MariaDB / MySQL driver (pure Python)
 pydantic-settings==2.15.0   # read configuration from environment variables / .env
 mcp==2.3.0                  # Model Context Protocol server, for the AI assistant
+howlongtobeatpy==1.0.24     # game lengths from HowLongToBeat (unofficial: no official API exists)

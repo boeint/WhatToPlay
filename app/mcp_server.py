@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
+from app import lengths
 from app.db import get_engine
 from app.models import Franchise, Game, Platform, Status
 from app.preferences import get_preference
@@ -70,7 +71,9 @@ def get_instructions() -> str:
         "- play_on must be one of the game's platforms (or empty).\n"
         "- status: unplayed, playing, finished or skip.\n"
         "- release_year + optional release_month (1-12); release_tba=true when the date isn't final.\n"
-        "- length_hours: main-story time in whole hours (1-999), or empty when unknown.\n"
+        "- length_hours: main-story time in whole hours (1-999), or empty when unknown. Get it with "
+        "lookup_length and check the match is the same game, not a collection, remake or sequel "
+        "(for a game played in a collection, use the single game's own entry).\n"
         "- Games are listed in play order; a franchise's games are added at its end."
     )
 
@@ -144,6 +147,18 @@ def search_games(query: str) -> dict:
             for g in f.games
             if needle in name_key(g.title)
         ]}
+
+
+@mcp.tool()
+async def lookup_length(title: str, year: int | None = None) -> dict:
+    """HowLongToBeat's closest matches for a game (name, year, Main Story hours, players), best first.
+
+    `hours` is the rounded figure for length_hours. Nothing is saved: propose it to the user.
+    """
+    try:
+        return {"matches": await lengths.lookup_length(title, year)}
+    except lengths.LookupUnavailable as exc:
+        raise ToolError(f"HowLongToBeat couldn't be searched right now ({exc}).") from None
 
 
 @mcp.tool()

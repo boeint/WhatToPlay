@@ -9,6 +9,10 @@ A self-hosted video-game backlog manager.
   before you've finished the earlier game, never an unreleased (TBA) game.
 - Status (unplayed / playing / finished / skip), finished date, release date, platforms and the
   one you'll **play on**, notes, links, and a link to each game's Backloggd page.
+- Each game's **length** (main story), looked up on HowLongToBeat with one click, so the picker
+  can suggest something short or long. HowLongToBeat has no official API: the lookup uses the
+  unofficial [howlongtobeatpy](https://pypi.org/project/howlongtobeatpy/) and may stop working
+  if the site changes (lengths can always be typed by hand).
 - Search (titles, platforms, notes), filters, sorting, drag-and-drop ordering.
 - Works on desktop and phone. Export / import of all data as a JSON backup.
 

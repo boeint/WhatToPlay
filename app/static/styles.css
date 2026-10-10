@@ -230,6 +230,11 @@ tr.flash td{animation:flash 1.6s ease-out}
 .statuses input:checked+span.playing{color:var(--play);border-color:var(--play);background:rgba(255,176,32,.1)}
 .statuses input:checked+span.finished{color:var(--done);border-color:var(--done);background:rgba(61,220,132,.1)}
 .statuses input:checked+span.skip{color:var(--txt);border-color:var(--skip);background:rgba(107,114,128,.25)}
+.field [data-out="length-matches"]{font-size:12px;color:var(--mut);margin-top:6px}
+.length-matches{display:flex;flex-direction:column;gap:6px}
+.length-match{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.length-match .hint{margin-top:0}
+.length-match a{color:var(--txt)}
 
 /* ---------- Phone layout (narrow screens) ----------
    Same HTML; each game row becomes a card laid out with a CSS grid. */

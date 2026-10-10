@@ -1,6 +1,7 @@
 // Game detail panel: every field of one game, saved together with "Save".
 // Fields use name="..." (not data-field), so the table's save-on-change
 // listener in app.js ignores them.
+import { api } from "./api.js";
 import { confirmDialog } from "./dialog.js";
 
 const panel = document.getElementById("panel");
@@ -79,7 +80,9 @@ function render() {
         <div class="row">
           <input name="length_hours" id="length_hours" type="number" min="1" max="999" step="1"
                  placeholder="Hours" value="${g.length_hours ?? ""}"> hours
+          <button type="button" class="lnkbtn" data-panel="lookup-length">Look up on HowLongToBeat</button>
         </div>
+        <div data-out="length-matches"></div>
         <div class="hint">As on HowLongToBeat ("Main Story"). Used by the picker's length filter.</div>
       </div>
 
@@ -146,6 +149,32 @@ function refreshDependentFields() {
   select.innerHTML = `<option value="">—</option>` + ticked.map((p) =>
     `<option ${p === chosen ? "selected" : ""}>${esc(p)}</option>`).join("");
   select.disabled = ticked.length === 0;
+}
+
+// ---------- length lookup ----------
+// HowLongToBeat's best matches for the title as typed; picking one fills the Length field.
+async function lookupLength(button) {
+  const out = panel.querySelector('[data-out="length-matches"]');
+  const title = panel.querySelector('[name="title"]').value.trim();
+  if (!title) return (out.textContent = "Type the title first.");
+  const year = Number(panel.querySelector('[name="release_year"]').value) || null;
+  button.disabled = true;
+  out.textContent = "Looking up…";
+  try {
+    const { matches } = await api.lookupLength(title, year);
+    const usable = matches.filter((m) => m.hours);
+    out.innerHTML = usable.length
+      ? `<div class="length-matches">${usable.map((m) => `<div class="length-match">
+          <button type="button" class="btn-ghost" data-panel="use-length" data-hours="${m.hours}">Use ${m.hours} h</button>
+          <a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.name)}${m.year ? ` (${m.year})` : ""}</a>
+          <span class="hint">${m.main_story} h · ${m.players} player${m.players === 1 ? "" : "s"}</span>
+        </div>`).join("")}</div>`
+      : "No main-story time found on HowLongToBeat.";
+  } catch (err) {
+    out.textContent = err.message;
+  } finally {
+    button.disabled = false;
+  }
 }
 
 // ---------- reading the form ----------
@@ -286,7 +315,11 @@ panel.addEventListener("click", (event) => {
     panel.querySelector('[data-out="links"]').insertAdjacentHTML("beforeend", linkRow());
     panel.querySelector('[data-out="links"] .link-row:last-child input').focus();
   } else if (action === "remove-link") button.closest(".link-row").remove();
-  else if (action === "save") save(button);
+  else if (action === "lookup-length") lookupLength(button);
+  else if (action === "use-length") {
+    panel.querySelector('[name="length_hours"]').value = button.dataset.hours;
+    panel.querySelector('[data-out="length-matches"]').textContent = "";
+  } else if (action === "save") save(button);
   else if (action === "delete") remove();
 });
 
