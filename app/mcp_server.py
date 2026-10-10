@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
 from app.db import get_engine
-from app.models import Franchise, Game, Platform
+from app.models import Franchise, Game, Platform, Status
 from app.preferences import get_preference
 from app.routers.franchises import WITH_GAMES, create_franchise
 from app.routers.games import apply_fields, next_sort_order, platforms_by_name, update_game as update_game_endpoint
@@ -70,6 +70,7 @@ def get_instructions() -> str:
         "- play_on must be one of the game's platforms (or empty).\n"
         "- status: unplayed, playing, finished or skip.\n"
         "- release_year + optional release_month (1-12); release_tba=true when the date isn't final.\n"
+        "- length_hours: main-story time in whole hours (1-999), or empty when unknown.\n"
         "- Games are listed in play order; a franchise's games are added at its end."
     )
 
@@ -95,6 +96,37 @@ def get_franchise(name: str) -> dict:
     """One franchise with all its games in play order (titles, release, status, platforms, play on, notes)."""
     with session() as s:
         return FranchiseOut.from_model(find_franchise(s, name)).model_dump(mode="json")
+
+
+@mcp.tool()
+def list_games(
+    status: Status | None = None,
+    missing_length: bool = False,
+    tba_only: bool = False,
+    franchise: str | None = None,
+) -> dict:
+    """Games across all franchises (or one), optionally filtered: by status, only those
+    without a length (to fill in), or only those whose release date is TBA (to re-check).
+    """
+    with session() as s:
+        if franchise:
+            franchises = [find_franchise(s, franchise)]
+        else:
+            franchises = s.scalars(select(Franchise).order_by(Franchise.name).options(*WITH_GAMES)).all()
+        games = []
+        for f in franchises:
+            for g in f.games:
+                if status and g.status != status:
+                    continue
+                if missing_length and g.length_hours is not None:
+                    continue
+                if tba_only and not g.release_tba:
+                    continue
+                out = GameOut.from_model(g)
+                games.append({"franchise": f.name, "title": g.title, "status": g.status.value,
+                              "released": out.released, "platforms": out.platforms,
+                              "play_on": out.play_on, "length_hours": g.length_hours})
+        return {"count": len(games), "games": games}
 
 
 @mcp.tool()

@@ -88,3 +88,27 @@ def test_tools_explain_what_went_wrong(client, make_franchise):
         error, text = call_tool(tool, arguments)
         assert error and message in text, (tool, text)
     assert [f["name"] for f in client.get("/api/franchises").json()] == ["Taken"]     # nothing written
+
+
+def test_list_games_filters(client, make_franchise):
+    make_franchise("Series", [
+        {"title": "Done", "status": "finished", "length_hours": 10},
+        {"title": "No length"},
+        {"title": "Coming", "release_tba": True, "length_hours": 30},
+    ])
+    make_franchise("Other", [{"title": "Elsewhere", "length_hours": 5}])
+    listed = lambda **filters: [g["title"] for g in json.loads(call_tool("list_games", filters)[1])["games"]]
+    assert sorted(listed()) == ["Coming", "Done", "Elsewhere", "No length"]
+    assert listed(missing_length=True) == ["No length"]
+    assert listed(tba_only=True) == ["Coming"]
+    assert listed(status="finished") == ["Done"]
+    assert listed(status="unplayed", missing_length=True) == ["No length"]
+    assert listed(franchise="other") == ["Elsewhere"]
+    error, text = call_tool("list_games", {"franchise": "Nope"})
+    assert error and "No franchise named" in text
+
+
+def test_update_game_sets_a_length(client, make_franchise):
+    make_franchise("Series", [{"title": "Game"}])
+    assert not call_tool("update_game", {"franchise": "Series", "title": "Game", "changes": {"length_hours": 18}})[0]
+    assert client.get("/api/franchises").json()[0]["games"][0]["length_hours"] == 18

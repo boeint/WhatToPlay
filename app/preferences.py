@@ -17,6 +17,7 @@ How to add a franchise or games to my backlog:
 - Platforms: everywhere the game is officially available, including later ports. If a retro game is playable through Nintendo Switch Online, also list NSO (Play on stays the original console).
 - Play on: PC if the game is available on PC; otherwise the platform it originally came out on (e.g. SNES). Play on is always a platform, never a device: I play PC games on a Steam Deck and retro games on handhelds, and I note the device myself after playing.
 - Minor games and games you decide to skip (mobile-only spin-offs, gacha games, compilations of games already listed, minor re-releases) are still added, with status Skip and a short note saying why.
+- Length: the main-story time in hours, as on HowLongToBeat ("Main Story"), rounded to a whole hour. Leave it empty if there's no reliable figure.
 - DLC and expansions are not separate games unless sold as standalone games.
 - Check for duplicates first, including in other franchises.
 - New games are Unplayed.
