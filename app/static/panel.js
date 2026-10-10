@@ -15,7 +15,7 @@ let current = null;
 // What a new game starts as, in create mode.
 export const BLANK_GAME = {
   id: null, title: "", release_year: null, release_month: null, release_tba: false,
-  status: "unplayed", finished_on: null, notes: "", platforms: [], play_on: null,
+  status: "unplayed", finished_on: null, length_hours: null, notes: "", platforms: [], play_on: null,
   links: [], backloggd_url: null, backloggd_link: "",
 };
 
@@ -72,6 +72,15 @@ function render() {
         <div class="row" data-show="finished" style="margin-top:10px">
           <label class="check">Finished on <input type="date" name="finished_on" value="${g.finished_on ?? ""}"></label>
         </div>
+      </div>
+
+      <div class="field">
+        <label for="length_hours">Length (main story)</label>
+        <div class="row">
+          <input name="length_hours" id="length_hours" type="number" min="1" max="999" step="1"
+                 placeholder="Hours" value="${g.length_hours ?? ""}"> hours
+        </div>
+        <div class="hint">As on HowLongToBeat ("Main Story"). Used by the picker's length filter.</div>
       </div>
 
       <div class="field">
@@ -158,6 +167,7 @@ function readForm() {
     release_tba: field("release_tba").checked,
     status,
     finished_on: status === "finished" ? field("finished_on").value || null : null,
+    length_hours: field("length_hours").value === "" ? null : Number(field("length_hours").value),
     platforms: [...panel.querySelectorAll('[name="platform"]:checked')].map((c) => c.value),
     play_on: field("play_on").value || null,
     notes: field("notes").value,
@@ -198,6 +208,8 @@ function changedFields() {
 function problems(form) {
   if (!form.title) return "The title can't be empty.";
   if (form.release_month && !form.release_year) return "A release month needs a year.";
+  if (form.length_hours !== null && !(Number.isInteger(form.length_hours) && form.length_hours >= 1 && form.length_hours <= 999))
+    return "The length must be a whole number of hours, from 1 to 999.";
   if (form.links.some((link) => !link.url)) return "Each link needs a URL.";
   if (form.links.some((link) => !/^https?:\/\//.test(link.url))) return "Links must start with http:// or https://";
   if (form.backloggd_url && !/^https?:\/\//.test(form.backloggd_url)) return "The Backloggd page must start with http:// or https://";

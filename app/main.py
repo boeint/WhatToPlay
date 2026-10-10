@@ -32,7 +32,17 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="WhatToPlay", version="1.4.0", lifespan=lifespan)
+app = FastAPI(title="WhatToPlay", version="1.5.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def always_current_page(request: Request, call_next):
+    """Browsers may keep the page's files but must check they're current before using
+    them, so an update shows up right away (an unchanged file costs a tiny "not modified")."""
+    response = await call_next(request)
+    if not request.url.path.startswith(("/api/", "/mcp")):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 app.include_router(platforms.router)
 app.include_router(franchises.router)
