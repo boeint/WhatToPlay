@@ -3,6 +3,7 @@
 // listener in app.js ignores them.
 import { api } from "./api.js";
 import { confirmDialog } from "./dialog.js";
+import { devicesDatalist, knownDevices, readStars, starsField } from "./rating.js";
 
 const panel = document.getElementById("panel");
 const backdrop = document.getElementById("backdrop");
@@ -16,7 +17,8 @@ let current = null;
 // What a new game starts as, in create mode.
 export const BLANK_GAME = {
   id: null, title: "", release_year: null, release_month: null, release_tba: false,
-  status: "unplayed", finished_on: null, length_hours: null, notes: "", platforms: [], play_on: null,
+  status: "unplayed", finished_on: null, length_hours: null, device: null, rating: null, verdict: null,
+  notes: "", platforms: [], play_on: null,
   links: [], backloggd_url: null, backloggd_link: "",
 };
 
@@ -70,8 +72,13 @@ function render() {
       <div class="field">
         <span class="label">Status</span>
         <div class="statuses">${statusChoices}</div>
-        <div class="row" data-show="finished" style="margin-top:10px">
-          <label class="check">Finished on <input type="date" name="finished_on" value="${g.finished_on ?? ""}"></label>
+        <div class="finished-extra" data-show="finished">
+          <div class="row"><label class="check">Finished on <input type="date" name="finished_on" value="${g.finished_on ?? ""}"></label></div>
+          <div class="row"><label class="check">Played on <input name="device" list="panel-devices" maxlength="100"
+            value="${esc(g.device)}" placeholder="e.g. Steam Deck"></label></div>
+          <div class="row"><span class="check">Rating</span> ${starsField("panel", g.rating)}</div>
+          <input name="verdict" maxlength="300" value="${esc(g.verdict)}" placeholder="Your verdict, in one line" aria-label="Verdict">
+          ${devicesDatalist("panel-devices", knownDevices(franchises))}
         </div>
       </div>
 
@@ -197,6 +204,9 @@ function readForm() {
     status,
     finished_on: status === "finished" ? field("finished_on").value || null : null,
     length_hours: field("length_hours").value === "" ? null : Number(field("length_hours").value),
+    device: field("device").value.trim() || null,
+    rating: readStars(panel),
+    verdict: field("verdict").value.trim() || null,
     platforms: [...panel.querySelectorAll('[name="platform"]:checked')].map((c) => c.value),
     play_on: field("play_on").value || null,
     notes: field("notes").value,

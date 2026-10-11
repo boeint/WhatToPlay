@@ -13,6 +13,7 @@ function esc(value) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const hoursOf = (games) => games.reduce((sum, g) => sum + (g.length_hours || 0), 0);
 const known = (games) => games.filter((g) => g.length_hours).length;
@@ -58,6 +59,25 @@ function render() {
       <span class="st-bar-value">${plural(list.length, "game")}${hoursSuffix(list.map((x) => x.game))}</span></div>`;
   }).join("");
 
+  // Finished games by the device they were played on.
+  const devices = new Map();
+  for (const { game: g } of finished) if (g.device) devices.set(g.device, [...(devices.get(g.device) || []), g]);
+  const deviceMost = Math.max(1, ...[...devices.values()].map((list) => list.length));
+  const deviceBars = [...devices.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
+    .map(([device, list]) => `<div class="st-bar-row"><span class="st-bar-label">${esc(device)}</span>
+      <span class="st-bar"><span style="width:${(list.length / deviceMost) * 100}%"></span></span>
+      <span class="st-bar-value">${plural(list.length, "game")}${hoursSuffix(list)}</span></div>`).join("");
+  const noDevice = finished.filter((x) => !x.game.device).length;
+
+  // Your best-rated finished games.
+  const favourites = finished.filter((x) => x.game.rating)
+    .sort((a, b) => b.game.rating - a.game.rating || (b.game.finished_on || "").localeCompare(a.game.finished_on || ""))
+    .slice(0, 5)
+    .map(({ game: g, franchise: f }) => `<li><span><button type="button" class="st-game" data-stats="open" data-game="${g.id}">${esc(g.title)}</button>
+        ${g.verdict ? `<span class="st-verdict">“${esc(g.verdict)}”</span>` : ""}</span>
+      <span class="st-stars" title="${g.rating} out of 5">${stars(g.rating)}</span></li>`).join("");
+
   // The backlog by length (the picker's buckets).
   const bucketMost = Math.max(1, ...LENGTHS.map(([, , min, max]) => left.filter((g) => g.length_hours >= min && g.length_hours < max).length));
   const buckets = LENGTHS.map(([name, range, min, max]) => {
@@ -85,7 +105,9 @@ function render() {
         const date = g.finished_on ? `${Number(g.finished_on.slice(8, 10))} ${MONTHS[Number(g.finished_on.slice(5, 7)) - 1]}` : "";
         return `<li>${date ? `<span class="st-date">${date}</span>` : ""}
           <button type="button" class="st-game" data-stats="open" data-game="${g.id}">${esc(g.title)}</button>
-          <span class="st-muted">${esc(f.name)}${g.length_hours ? ` · ~${g.length_hours} h` : ""}</span></li>`;
+          <span class="st-muted">${esc(f.name)}${g.length_hours ? ` · ~${g.length_hours} h` : ""}${g.device ? ` · ${esc(g.device)}` : ""}</span>
+          ${g.rating ? `<span class="st-stars" title="${g.rating} out of 5">${stars(g.rating)}</span>` : ""}
+          ${g.verdict ? `<span class="st-verdict">“${esc(g.verdict)}”</span>` : ""}</li>`;
       }).join("");
     return `<h4>${esc(year)}</h4><ul class="st-finished">${rows}</ul>`;
   }).join("");
@@ -101,6 +123,9 @@ function render() {
       </div>
       <h3>Finished per year</h3>
       ${yearBars || `<p class="st-muted">Nothing finished yet.</p>`}
+      ${favourites ? `<h3>Your favourites</h3><ul class="st-biggest">${favourites}</ul>` : ""}
+      ${deviceBars ? `<h3>Played on</h3>${deviceBars}
+        ${noDevice ? `<p class="st-muted st-note">${plural(noDevice, "finished game")} without a device noted.</p>` : ""}` : ""}
       <h3>What's left, by length</h3>
       ${buckets}
       ${noLength ? `<p class="st-muted st-note">${plural(noLength, "game")} left without a length (not out yet, or no time on HowLongToBeat).</p>` : ""}

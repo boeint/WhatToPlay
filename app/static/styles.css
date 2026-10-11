@@ -237,6 +237,22 @@ tr.flash td{animation:flash 1.6s ease-out}
 .length-match .hint{margin-top:0}
 .length-match a{color:var(--txt)}
 
+/* ---------- Finished: rating, played on, verdict ---------- */
+.stars{display:inline-flex;flex-direction:row-reverse;gap:2px;vertical-align:middle}
+.stars input{position:absolute;opacity:0;width:0;height:0}
+.stars label{font-size:22px;line-height:1;color:var(--line);cursor:pointer}
+.stars input:checked ~ label,.stars label:hover,.stars label:hover ~ label{color:var(--play)}
+.stars input:focus-visible + label{outline:2px solid var(--acc2);outline-offset:1px;border-radius:3px}
+.finished-extra{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.finished-extra input[name="device"]{width:180px}
+.finished-extra input[name="verdict"]{width:100%}
+.finish-form{display:flex;flex-direction:column;gap:12px;margin:14px 0 4px}
+.finish-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}
+.finish-form input{font-size:15px}
+.finish-rating{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mut)}
+.finish-form .stars label{display:inline;font-size:22px;color:var(--line)}   /* not the form's label style */
+.finish-form .stars input:checked ~ label,.finish-form .stars label:hover,.finish-form .stars label:hover ~ label{color:var(--play)}
+
 /* ---------- Stats ---------- */
 .stats-modal{max-width:680px}
 .st-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -259,6 +275,9 @@ tr.flash td{animation:flash 1.6s ease-out}
 .st-date{color:var(--mut);font-size:12px;width:44px;flex:none}
 .st-game{background:none;border:none;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;text-align:left}
 .st-game:hover{color:var(--acc2);text-decoration:underline}
+.st-stars{color:var(--play);font-size:13px;letter-spacing:1px;white-space:nowrap}
+.st-verdict{color:var(--mut);font-size:13px;font-style:italic;flex-basis:100%;padding-left:54px}
+.st-biggest .st-verdict{display:block;padding-left:0}
 
 /* ---------- Phone layout (narrow screens) ----------
    Same HTML; each game row becomes a card laid out with a CSS grid. */

@@ -66,6 +66,9 @@ class GameOut(BaseModel):
     status: Status
     finished_on: date | None
     length_hours: int | None       # main story, in hours
+    device: str | None             # once finished: what it was played on (free text)
+    rating: int | None             # once finished: 1-5
+    verdict: str | None            # once finished: one line
     notes: str
     platforms: list[str]           # platform names, in the game's order
     play_on: str | None            # where the user will play it: one of `platforms`
@@ -85,6 +88,9 @@ class GameOut(BaseModel):
             status=game.status,
             finished_on=game.finished_on,
             length_hours=game.length_hours,
+            device=game.device,
+            rating=game.rating,
+            verdict=game.verdict,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
             play_on=game.play_on.name if game.play_on else None,
@@ -155,7 +161,7 @@ class _GameRules(BaseModel):
     """Validation shared by GameCreate and GameUpdate."""
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    @field_validator("backloggd_url", mode="after", check_fields=False)
+    @field_validator("backloggd_url", "device", "verdict", mode="after", check_fields=False)
     @classmethod
     def empty_means_none(cls, value: str | None) -> str | None:
         return value or None
@@ -181,6 +187,9 @@ class GameCreate(_GameRules):
     status: Status = Status.UNPLAYED
     finished_on: date | None = None   # left out: set automatically when status is finished
     length_hours: int | None = Field(None, ge=1, le=999)   # main story, in hours
+    device: str | None = Field(None, max_length=100)       # once finished: played on (free text)
+    rating: int | None = Field(None, ge=1, le=5)           # once finished
+    verdict: str | None = Field(None, max_length=300)      # once finished: one line
     notes: str = ""
     platforms: list[str] = []         # platform names, in order
     play_on: str | None = None        # one of `platforms`
@@ -208,6 +217,9 @@ class GameCreate(_GameRules):
             status=game.status,
             finished_on=game.finished_on,
             length_hours=game.length_hours,
+            device=game.device,
+            rating=game.rating,
+            verdict=game.verdict,
             notes=game.notes,
             platforms=[gp.platform.name for gp in game.platforms],
             play_on=game.play_on.name if game.play_on else None,
@@ -230,6 +242,9 @@ class GameUpdate(_GameRules):
     status: Status = None
     finished_on: date | None = None
     length_hours: int | None = Field(None, ge=1, le=999)
+    device: str | None = Field(None, max_length=100)
+    rating: int | None = Field(None, ge=1, le=5)
+    verdict: str | None = Field(None, max_length=300)
     notes: str = None
     platforms: list[str] = None
     play_on: str | None = None        # null clears it

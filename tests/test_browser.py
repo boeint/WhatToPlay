@@ -137,6 +137,46 @@ def test_length_lookup_fills_the_field(page: Page, backlog):
     expect(page.locator('#panel [name="length_hours"]')).to_have_value("15")
 
 
+def test_finishing_a_game_asks_for_the_details(page: Page, backlog, client):
+    load(page)
+    block = franchise(page, "Portal")
+    block.locator(".fr-head .caret").click()
+    block.locator('select[data-field="status"]').select_option("finished")
+    dialog = page.locator("#dialog")
+    expect(dialog).to_contain_text("Finished: Portal")
+    dialog.locator('[name="device"]').fill("Steam Deck")
+    dialog.locator('label[for="finish-star-4"]').click()
+    dialog.locator('[name="verdict"]').fill("Short and perfect")
+    dialog.locator('[data-dialog="ok"]').click()
+    expect(dialog).to_be_hidden()
+    saved = game(client, "Portal")
+    assert (saved["status"], saved["device"], saved["rating"], saved["verdict"]) == ("finished", "Steam Deck", 4, "Short and perfect")
+    page.locator("#stats").click()                     # the stats show it
+    expect(page.locator(".stats-modal")).to_contain_text("Your favourites")
+    expect(page.locator(".stats-modal")).to_contain_text("Steam Deck")
+
+
+def test_finishing_can_be_skipped(page: Page, backlog, client):
+    load(page)
+    block = franchise(page, "Portal")
+    block.locator(".fr-head .caret").click()
+    block.locator('select[data-field="status"]').select_option("finished")
+    page.locator('#dialog [data-dialog="cancel"]').click()
+    saved = game(client, "Portal")
+    assert saved["status"] == "finished" and saved["finished_on"] and saved["rating"] is None
+
+
+def test_panel_edits_the_finished_details(page: Page, backlog, client):
+    load(page)
+    open_details(page, "Zelda", "The Legend of Zelda")
+    page.locator('#panel [name="device"]').fill("NES")
+    page.locator('#panel label[for="panel-star-5"]').click()
+    page.locator('#panel [data-panel="save"]').click()
+    expect(page.locator("#panel")).to_be_hidden()
+    saved = game(client, "The Legend of Zelda")
+    assert (saved["device"], saved["rating"]) == ("NES", 5)
+
+
 # ---------- what to play next ----------
 
 def test_picker_suggests_each_franchise_next_game(page: Page, backlog):

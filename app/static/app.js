@@ -5,6 +5,7 @@ import { confirmDialog, formDialog } from "./dialog.js";
 import { BLANK_GAME, openGamePanel } from "./panel.js";
 import { openPicker } from "./picker.js";
 import { openStats } from "./stats.js";
+import { devicesDatalist, knownDevices, readStars, starsField } from "./rating.js";
 
 // ---------- state ----------
 let franchises = [];          // from GET /api/franchises, in custom order
@@ -264,6 +265,33 @@ async function editGame(gameId, field, value) {
     // Title and notes are already shown as typed; only status / play_on change the row.
     if (field === "status" || field === "play_on") refreshGame(franchise, game);
     else refreshSummary(franchise);   // a title can appear in the "next up" pill
+  });
+  if (field === "status" && value === "finished" && game.status === "finished") askFinishDetails(game);
+}
+
+// A game just became Finished from the table: a small window for the date, what it
+// was played on, a rating and a one-line verdict. All optional; "Not now" skips it.
+function askFinishDetails(game) {
+  formDialog({
+    title: `🎉 Finished: ${game.title}`,
+    body: `<div class="finish-form">
+        <label>Finished on <input type="date" name="finished_on" value="${game.finished_on ?? ""}"></label>
+        <label>Played on <input name="device" list="finish-devices" maxlength="100" value="${esc(game.device)}"
+          placeholder="e.g. Steam Deck"></label>
+        <div class="finish-rating"><span>Rating</span> ${starsField("finish", game.rating)}</div>
+        <label>Verdict <input name="verdict" maxlength="300" value="${esc(game.verdict)}" placeholder="In one line"></label>
+        ${devicesDatalist("finish-devices", knownDevices(franchises))}
+      </div>`,
+    okLabel: "Save",
+    cancelLabel: "Not now",
+    onSubmit: async (form) => {
+      const value = (name) => form.querySelector(`[name="${name}"]`).value.trim() || null;
+      const typed = { finished_on: value("finished_on"), device: value("device"), rating: readStars(form), verdict: value("verdict") };
+      if (!typed.finished_on) delete typed.finished_on;   // emptied: keep the date it has
+      const changes = Object.fromEntries(Object.entries(typed).filter(([key, v]) => v !== (game[key] ?? null)));
+      if (!Object.keys(changes).length) return;
+      Object.assign(game, await withIndicator(() => api.updateGame(game.id, changes)));
+    },
   });
 }
 

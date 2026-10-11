@@ -26,9 +26,9 @@ function close(value) {
   resolveCurrent = submitCurrent = null;
 }
 
-const buttons = (okLabel, danger) => `<p class="dialog-error" data-out="error" role="alert"></p>
+const buttons = (okLabel, danger, cancelLabel = "Cancel") => `<p class="dialog-error" data-out="error" role="alert"></p>
   <div class="roll-actions" style="justify-content:flex-end">
-    <button type="button" class="btn-ghost" data-dialog="cancel">Cancel</button>
+    <button type="button" class="btn-ghost" data-dialog="cancel">${esc(cancelLabel)}</button>
     <button type="submit" class="${danger ? "btn-danger" : "btn-primary"}" data-dialog="ok">${esc(okLabel)}</button>
   </div>`;
 
@@ -40,9 +40,9 @@ export function confirmDialog(message, okLabel = "OK", { danger = false } = {}) 
 
 // A small form. onSubmit(form) may throw: the message is shown and the dialog
 // stays open. Resolves to true when submitted, false when cancelled.
-export function formDialog({ title, body, okLabel = "OK", danger = false, onSubmit }) {
+export function formDialog({ title, body, okLabel = "OK", cancelLabel = "Cancel", danger = false, onSubmit }) {
   return new Promise((resolve) =>
-    open(`<h2 style="font-size:18px">${esc(title)}</h2>${body}${buttons(okLabel, danger)}`, resolve, onSubmit));
+    open(`<h2 style="font-size:18px">${esc(title)}</h2>${body}${buttons(okLabel, danger, cancelLabel)}`, resolve, onSubmit));
 }
 
 export const isDialogOpen = () => overlay.classList.contains("on");

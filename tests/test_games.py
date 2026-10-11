@@ -128,3 +128,16 @@ def test_length_hours(client, franchise):
 def test_length_hours_must_be_1_to_999(client, franchise):
     assert add(client, franchise, length_hours=0).status_code == 422
     assert add(client, franchise, length_hours=1000).status_code == 422
+
+
+def test_finished_details(client, franchise):
+    game = add(client, franchise, status="finished", device="Steam Deck", rating=4, verdict="Loved the ending").json()
+    assert (game["device"], game["rating"], game["verdict"]) == ("Steam Deck", 4, "Loved the ending")
+    changed = client.patch(f"/api/games/{game['id']}", json={"rating": 5, "device": "  ", "verdict": None}).json()
+    assert (changed["device"], changed["rating"], changed["verdict"]) == (None, 5, None)   # blank = none
+
+
+def test_rating_is_1_to_5(client, franchise):
+    assert add(client, franchise, rating=0).status_code == 422
+    assert add(client, franchise, rating=6).status_code == 422
+    assert add(client, franchise, verdict="x" * 301).status_code == 422

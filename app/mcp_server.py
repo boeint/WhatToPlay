@@ -74,6 +74,8 @@ def get_instructions() -> str:
         "- length_hours: main-story time in whole hours (1-999), or empty when unknown. Get it with "
         "lookup_length and check the match is the same game, not a collection, remake or sequel "
         "(for a game played in a collection, use the single game's own entry).\n"
+        "- device (what it was played on), rating (1-5) and verdict (one line) are the user's own "
+        "notes once a game is finished: only set them when the user tells you.\n"
         "- Games are listed in play order; a franchise's games are added at its end."
     )
 
