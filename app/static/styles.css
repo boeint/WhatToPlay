@@ -122,7 +122,7 @@ select.status.skip{color:var(--skip)}
 .platform-add input{flex:1;min-width:0}
 
 /* Backup status line at the bottom of the page */
-.backup-status{padding:0 20px 40px;color:var(--mut);font-size:13px;text-align:center}
+.backup-status{padding:0 20px 40px;color:var(--mut);font-size:13px;text-align:center;overflow-wrap:anywhere}   /* long folder paths and errors wrap */
 .backup-status .warn{color:var(--play)}
 .backup-status .bad{color:var(--danger)}
 .backup-status button{background:transparent;border:none;color:var(--acc2);padding:0 4px;font-size:13px;text-decoration:underline}
