@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="WhatToPlay", version="1.8.0", lifespan=lifespan)
+app = FastAPI(title="WhatToPlay", version="1.8.1", lifespan=lifespan)
 
 
 @app.middleware("http")
