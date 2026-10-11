@@ -22,7 +22,7 @@
   <button class="btn-roll" data-action="pick">🎲 What to play next</button>
   <span class="save-state" id="save-state" aria-live="polite"></span>
   <div class="grow"></div>
-  <div class="stats" id="stats"></div>
+  <button type="button" class="stats" id="stats" data-action="stats" title="Your stats: finished games, hours, what's left"></button>
   <button class="btn-ghost settings-btn" data-action="settings" title="Settings" aria-label="Settings">⚙</button>
 </header>
 
@@ -58,6 +58,7 @@
 <aside class="panel" id="panel" aria-label="Game details" hidden></aside>
 
 <div class="ov" id="picker"></div>
+<div class="ov" id="stats-view"></div>
 <div class="ov" id="dialog"></div>
 
 <div class="toast" id="toast"></div>

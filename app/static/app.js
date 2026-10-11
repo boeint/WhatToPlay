@@ -4,6 +4,7 @@ import { api } from "./api.js";
 import { confirmDialog, formDialog } from "./dialog.js";
 import { BLANK_GAME, openGamePanel } from "./panel.js";
 import { openPicker } from "./picker.js";
+import { openStats } from "./stats.js";
 
 // ---------- state ----------
 let franchises = [];          // from GET /api/franchises, in custom order
@@ -546,6 +547,8 @@ document.addEventListener("click", (event) => {
     const franchise = findFranchise(Number(target.closest("[data-franchise]").dataset.franchise));
     if (action === "add-game") openNewGame(franchise);
     else deleteFranchise(franchise);
+  } else if (action === "stats") {
+    openStats({ franchises, onOpen: (game, franchise) => openGame(game, franchise) });
   } else if (action === "settings") {
     openSettings();
   } else if (action === "reset-ai-instructions") {

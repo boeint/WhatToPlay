@@ -13,7 +13,8 @@ header{position:sticky;top:0;z-index:20;background:rgba(15,17,23,.92);backdrop-f
 header h1{font-size:18px;margin:0;letter-spacing:.3px;white-space:nowrap}
 header h1 span{color:var(--acc)}
 .grow{flex:1}
-.stats{display:flex;gap:14px;color:var(--mut);font-size:13px;flex-wrap:wrap}
+.stats{display:flex;gap:14px;color:var(--mut);font-size:13px;flex-wrap:wrap;background:none;border:1px solid transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font-family:inherit;text-align:left}
+.stats:hover{border-color:var(--line);background:var(--panel)}
 .stats b{color:var(--txt)}
 button{cursor:pointer;font:inherit;border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:9px;padding:8px 12px;transition:.15s}
 button:hover{border-color:var(--acc);background:#262b3a}
@@ -236,12 +237,38 @@ tr.flash td{animation:flash 1.6s ease-out}
 .length-match .hint{margin-top:0}
 .length-match a{color:var(--txt)}
 
+/* ---------- Stats ---------- */
+.stats-modal{max-width:680px}
+.st-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.stats-modal h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:22px 0 10px}
+.stats-modal h4{margin:14px 0 6px;font-size:14px}
+.st-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.st-tile{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.st-label{font-size:12px;color:var(--mut)}
+.st-value{font-size:26px;font-weight:800;line-height:1.2}
+.st-detail{font-size:12px;color:var(--mut)}
+.st-muted{color:var(--mut);font-size:12px}
+.st-note{margin:8px 0 0}
+.st-bar-row{display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:center;font-size:13px;margin:4px 0}
+.st-bar{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.st-bar span{display:block;height:100%;background:var(--acc);border-radius:5px;min-width:2px}
+.st-bar-value{color:var(--mut);font-size:12px}
+.st-biggest,.st-finished{list-style:none;margin:0;padding:0}
+.st-biggest li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+.st-finished li{display:flex;align-items:baseline;gap:10px;padding:4px 0;font-size:14px;flex-wrap:wrap}
+.st-date{color:var(--mut);font-size:12px;width:44px;flex:none}
+.st-game{background:none;border:none;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.st-game:hover{color:var(--acc2);text-decoration:underline}
+
 /* ---------- Phone layout (narrow screens) ----------
    Same HTML; each game row becomes a card laid out with a CSS grid. */
 @media (max-width: 760px) {
   header{padding:10px 12px;gap:8px 10px}
   header .btn-roll{padding:7px 12px;font-size:14px}
   .stats{gap:10px;font-size:12px;width:100%}
+  .st-tiles{grid-template-columns:repeat(2,1fr)}
+  .st-bar-row{grid-template-columns:90px 1fr;row-gap:2px}
+  .st-bar-value{grid-column:2}
   .bar{padding:10px 12px;gap:8px}
   .bar input[type=search]{flex:1 1 100%;min-width:0;max-width:none}
   .bar .grow{display:none}

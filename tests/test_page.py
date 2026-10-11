@@ -2,7 +2,7 @@
 import pytest
 
 
-@pytest.mark.parametrize("path", ["/", "/app.js", "/panel.js", "/picker.js", "/styles.css", "/icon.png"])
+@pytest.mark.parametrize("path", ["/", "/app.js", "/panel.js", "/picker.js", "/stats.js", "/styles.css", "/icon.png"])
 def test_page_files_are_served_and_revalidated(client, path):
     response = client.get(path)
     assert response.status_code == 200
