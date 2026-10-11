@@ -1,5 +1,6 @@
 """Settings, the health check, and the AI assistant (MCP) with its on/off switch."""
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 import anyio
 from mcp.client import Client
@@ -17,7 +18,9 @@ def call_tool(name, arguments):
             result = await c.call_tool(name, arguments)
             error = getattr(result, "is_error", None) or getattr(result, "isError", None)
             return bool(error), " ".join(getattr(part, "text", "") for part in result.content)
-    return anyio.run(run)
+    # In its own thread: the browser tests (Playwright) keep an event loop running in this one.
+    with ThreadPoolExecutor(1) as thread:
+        return thread.submit(anyio.run, run).result()
 
 
 def test_health(client):

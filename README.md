@@ -14,7 +14,9 @@ A self-hosted video-game backlog manager.
   unofficial [howlongtobeatpy](https://pypi.org/project/howlongtobeatpy/) and may stop working
   if the site changes (lengths can always be typed by hand).
 - Search (titles, platforms, notes), filters, sorting, drag-and-drop ordering.
-- Works on desktop and phone. Export / import of all data as a JSON backup.
+- **Your stats:** finished games per year, hours played and hours left, the biggest backlogs.
+- Works on desktop and phone, and can be added to a phone's or tablet's home screen as an app.
+  Export / import of all data as a JSON backup.
 
 It runs as one small container and stores its data in a MariaDB (or MySQL) database you already
 have. No account or login: it's meant for your home network (use a VPN such as Tailscale or
@@ -117,10 +119,13 @@ uvicorn app.main:app                                           # http://localhos
 ### Tests
 
 ```sh
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium   # once: the browser for the page tests
 python -m pytest
 ```
 
-The tests use a real MariaDB database whose name must end in `_test` (they empty it): `.env`'s server
+`tests/test_browser.py` clicks through the page in a real (headless) Chromium: the list, the detail
+panel, the picker, the stats and the phone layout. The other tests call the API directly. The tests use a real MariaDB database whose name must end in `_test` (they empty it): `.env`'s server
 and user with the database `whattoplay_test`, or set `TEST_DB_NAME`. On GitHub they run against a
 throwaway MariaDB before every image build; if one fails, nothing is published.
 

@@ -80,3 +80,36 @@ def detail(response) -> str:
     """The error message of a refused request, as one string."""
     body = response.json()["detail"]
     return body if isinstance(body, str) else "; ".join(e["msg"] for e in body)
+
+
+@pytest.fixture(scope="session")
+def live_server(initial_platforms):
+    """The app served by a real server on a free port, for the browser tests; yields its address.
+
+    Its start-up tasks (daily backups, the AI endpoint) stay off: the TestClient above
+    already runs them, and the page doesn't need them.
+    """
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+
+    from app.main import app
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, lifespan="off", log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    while not server.started:
+        time.sleep(0.05)
+    yield f"http://127.0.0.1:{port}"
+    server.should_exit = True
+    thread.join(timeout=5)
+
+
+@pytest.fixture(scope="session")
+def base_url(live_server):
+    """Where Playwright's page.goto("/") goes."""
+    return live_server

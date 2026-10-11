@@ -47,6 +47,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
+      - name: Install the browser for the page tests
+        run: python -m playwright install --with-deps chromium
       - run: python -m pytest
 
   # 2. Build the image, test it as a container, publish it.
