@@ -184,14 +184,25 @@ def test_stats(page: Page, backlog):
 
 # ---------- phone ----------
 
+def sticking_out(page: Page) -> list[str]:
+    """Visible elements that reach past the right edge of the screen (empty when the page fits)."""
+    return page.evaluate("""() => {
+        if (document.documentElement.scrollWidth <= window.innerWidth) return [];
+        return [...document.querySelectorAll("body *")]
+            .filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 0.5)
+            .map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join(".")} right=${Math.round(e.getBoundingClientRect().right)}`)
+            .slice(0, 15);
+    }""") or ([] if page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+              else ["(page wider than the screen, no single element found)"])
+
+
 def test_phone_layout_fits_the_screen(page: Page, backlog):
     page.set_viewport_size({"width": 375, "height": 812})
     load(page)
     franchise(page, "Zelda").locator(".fr-head .caret").click()
-    fits = "document.documentElement.scrollWidth <= window.innerWidth"
-    assert page.evaluate(fits), "the list scrolls sideways"
+    assert not sticking_out(page), f"the list scrolls sideways: {sticking_out(page)}"
     page.locator("#stats").click()
-    assert page.evaluate(fits), "the stats scroll sideways"
+    assert not sticking_out(page), f"the stats scroll sideways: {sticking_out(page)}"
     tops = page.locator(".st-tile").evaluate_all("tiles => tiles.map(t => t.getBoundingClientRect().top)")
     assert tops[0] == tops[1] and tops[2] > tops[0], "stats tiles should be two by two"
 
